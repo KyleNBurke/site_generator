@@ -88,8 +88,14 @@ main :: proc() {
         file_stem := file_info.name[:len(file_info.name) - 3]
         file_name := fmt.tprintf("%s.html", file_stem)
         file_path := fmt.tprintf("site/article/%s", file_name)
+
+        HOME_BUTTON :: "<a href=\"../index.html\">Home</a>"
+
+        article_page_html, _ := strings.replace(HTML, "#style_path#", "../style.css", 1)
+        article_page_html, _ = strings.replace(article_page_html, "#home_button#", HOME_BUTTON, 1)
+        article_page_html, _ = strings.replace(article_page_html, "#content#", article_html, 1)
         
-        write_error := os.write_entire_file(file_path, article_html)
+        write_error := os.write_entire_file(file_path, article_page_html)
         fmt.assertf(write_error == nil, "Error: %v", write_error)
 
         article.file_name = file_name
@@ -99,14 +105,19 @@ main :: proc() {
     // Home page
     articles_builder := strings.builder_make()
 
+    strings.write_string(&articles_builder, "<ul>")
+
     for article in articles {
         line := fmt.aprintfln("<li><a href=\"article/%s\">%s</a></li>", article.file_name, article.title)
         strings.write_string(&articles_builder, line)
     }
 
-    article_links := strings.to_string(articles_builder)
-    home_page_text, _ := strings.replace(HOME_PAGE_TEXT, "#articles#", article_links, 1)
+    strings.write_string(&articles_builder, "</ul>")
 
+    article_links := strings.to_string(articles_builder)
+    home_page_text, _ := strings.replace(HTML, "#style_path#", "style.css", 1)
+    home_page_text, _ = strings.replace(home_page_text, "#home_button#", "", 1)
+    home_page_text, _ = strings.replace(home_page_text, "#content#", article_links, 1)
 
     error = os.write_entire_file("site/index.html", home_page_text)
     assert(error == nil)
@@ -114,17 +125,15 @@ main :: proc() {
     os.copy_file("site/style.css", "style.css")
 }
 
-HOME_PAGE_TEXT ::
+HTML ::
 `<!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="#style_path#">
 </head>
 <body>
     <h1>Kyle Burke</h1>
-    <h1>Articles</h1>
-    <ul>
-        #articles#
-    </ul>
+    #home_button#
+    #content#
 </body>
 </html>`
