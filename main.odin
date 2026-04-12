@@ -35,7 +35,7 @@ main :: proc() {
         fmt.assertf(read_error == nil, "Failed to read page file %v\nError: %v", file_info.fullpath, read_error)
         file_text := transmute(string) file_data
 
-        result, split_error := strings.split(file_text, "###")
+        result, split_error := strings.split(file_text, "---")
         assert(split_error == .None)
 
         metadata := result[0]
@@ -47,7 +47,6 @@ main :: proc() {
         for {
             line, ok := strings.split_lines_iterator(&metadata)
             if !ok do break
-
             if line == "" do continue
             
             result, split_error := strings.split(line, "=")
@@ -66,14 +65,38 @@ main :: proc() {
         // #TODO: Use io.Writer somehow. I think we can directly write to the file ssytem.
         article_builder := strings.builder_make()
 
+        strings.write_string(&article_builder, "<h1 class=\"title\">")
+        strings.write_string(&article_builder, article.title)
+        strings.write_string(&article_builder, "</h1>\n")
+
         for {
             line, ok := strings.split_lines_iterator(&content)
             if !ok do break
+            if line == "" do continue
 
-            if strings.starts_with(line, "#") {
+            if strings.starts_with(line, "##") {
+                line = strings.trim_space(line[2:])
+                strings.write_string(&article_builder, "<h2>")
+                strings.write_string(&article_builder, line)
+                strings.write_string(&article_builder, "</h2>")
+            } else if strings.starts_with(line, "#") {
+                line = strings.trim_space(line[1:])
+                strings.write_string(&article_builder, "<h1>")
+                strings.write_string(&article_builder, line)
+                strings.write_string(&article_builder, "</h1>")
+            } else if strings.starts_with(line, "```") {
+                strings.write_string(&article_builder, "<pre><code>")
 
-            } else if strings.starts_with(line, "##") {
-                
+                for {
+                    line, ok := strings.split_lines_iterator(&content)
+                    fmt.assertf(ok, "Code block was not closed")
+                    if line == "```" do break
+
+                    strings.write_string(&article_builder, line)
+                    strings.write_rune(&article_builder, '\n')
+                }
+
+                strings.write_string(&article_builder, "</code></pre>")
             } else {
                 strings.write_string(&article_builder, "<p>")
                 strings.write_string(&article_builder, line)
@@ -132,8 +155,10 @@ HTML ::
     <link rel="stylesheet" href="#style_path#">
 </head>
 <body>
-    <h1>Kyle Burke</h1>
-    #home_button#
-    #content#
+    <header>
+        <h1>Kyle Burke</h1>
+        #home_button#
+    </header>
+#content#
 </body>
 </html>`

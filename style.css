@@ -2,3 +2,16 @@ body {
   width: 80%;
   margin: 0 auto;
 }
+
+header {
+  margin-bottom: 2rem;
+}
+
+.title {
+  color: blue;
+}
+
+pre {
+  background-color: lightgrey;
+  padding: 0.5rem;
+}
