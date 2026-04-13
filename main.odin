@@ -222,16 +222,23 @@ build_paragraph :: proc(builder: ^strings.Builder, content: string, index: ^int)
 }
 
 build_math :: proc(builder: ^strings.Builder, content: string, index: ^int) {
-    strings.write_string(builder, "<math>")
+    expr := parse_math_expr(content, index)
     
-    for {
-        r := content[index^]
-        index^ += 1
-        if r == '$' do break
-        strings.write_byte(builder, r)
-    }
-
+    strings.write_string(builder, "<math>")
+    build_math_html(builder, expr)
     strings.write_string(builder, "</math>")
+}
+
+build_math_html :: proc(builder: ^strings.Builder, expr: ^Expr) {
+    switch expr_var in expr.variant {
+    case ^Ident_Expr:
+        strings.write_string(builder, "<mi>")
+        strings.write_string(builder, expr_var.str)
+        strings.write_string(builder, "</mi>")
+        
+	case ^Subscript_Expr:
+	case ^Superscript_Expr:
+    }
 }
 
 HTML ::
