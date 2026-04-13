@@ -69,6 +69,51 @@ main :: proc() {
         strings.write_string(&article_builder, article.title)
         strings.write_string(&article_builder, "</h1>\n")
 
+        index := 0
+
+        for index < len(content) {
+            r := content[index]
+
+            switch r {
+            case '\n':
+                index += 1
+
+            case '#':
+                index += 1
+                level := 1
+                
+                for index < len(content) {
+                    r = content[index]
+                    if r != '#' do break
+                    index += 1
+                    level += 1
+                }
+
+                heading_open := fmt.tprintf("<h%v>", level)
+                strings.write_string(&article_builder, heading_open)
+
+                start := index
+
+                for index < len(content) {
+                    r := content[index]
+                    index += 1
+                    if r == '\n' do break
+                }
+
+                heading := strings.trim_space(content[start : index])
+                strings.write_string(&article_builder, heading)
+
+                heading_close := fmt.tprintf("</h%v>", level)
+                strings.write_string(&article_builder, heading_close)
+
+                strings.write_rune(&article_builder, '\n')
+
+            case:
+                build_paragraph(&article_builder, content, &index)
+            }
+        }
+
+        /*
         for {
             line, ok := strings.split_lines_iterator(&content)
             if !ok do break
@@ -105,6 +150,7 @@ main :: proc() {
 
             strings.write_rune(&article_builder, '\n')
         }
+        */
 
         article_html := strings.to_string(article_builder)
 
@@ -146,6 +192,46 @@ main :: proc() {
     assert(error == nil)
 
     os.copy_file("site/style.css", "style.css")
+}
+
+build_paragraph :: proc(builder: ^strings.Builder, content: string, index: ^int) {
+    strings.write_string(builder, "<p>")
+
+    loop: for index^ < len(content) {
+        r := content[index^]
+
+        switch r {
+        case '\n':
+            break loop
+        
+        case '$':
+            index^ += 1
+            build_math(builder, content, index)
+
+        case:
+            strings.write_byte(builder, r)
+        }
+
+        index^ += 1
+    }
+
+    strings.write_string(builder, "</p>")
+    strings.write_rune(builder, '\n')
+
+    index^ += 1
+}
+
+build_math :: proc(builder: ^strings.Builder, content: string, index: ^int) {
+    strings.write_string(builder, "<math>")
+    
+    for {
+        r := content[index^]
+        index^ += 1
+        if r == '$' do break
+        strings.write_byte(builder, r)
+    }
+
+    strings.write_string(builder, "</math>")
 }
 
 HTML ::
