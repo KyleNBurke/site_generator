@@ -21,10 +21,12 @@ Ident_Expr :: struct {
 
 Subscript_Expr :: struct {
     using expr: Expr,
-    subscript_expr: ^Expr,
+    base_expr: ^Expr,
+    sub_expr: ^Expr,
 }
 
 Superscript_Expr :: struct {
     using expr: Expr,
-    superscript_expr: ^Expr,
+    base_expr: ^Expr,
+    super_expr: ^Expr,
 }

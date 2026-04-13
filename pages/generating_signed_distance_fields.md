@@ -7,4 +7,4 @@ Popularized by Valve, signed distance fields provide an efficient way to display
 # The algorithm
 Let's start with the following pseudo code for generating our set of signed distance fields.
 
-math test: $abc$
+math test: $a^c$

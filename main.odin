@@ -230,6 +230,10 @@ build_math :: proc(builder: ^strings.Builder, content: string, index: ^int) {
 }
 
 build_math_html :: proc(builder: ^strings.Builder, expr: ^Expr) {
+    build_expr(builder, expr)
+}
+
+build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
     switch expr_var in expr.variant {
     case ^Ident_Expr:
         strings.write_string(builder, "<mi>")
@@ -238,6 +242,10 @@ build_math_html :: proc(builder: ^strings.Builder, expr: ^Expr) {
         
 	case ^Subscript_Expr:
 	case ^Superscript_Expr:
+        strings.write_string(builder, "<msup>")
+        build_expr(builder, expr_var.base_expr)
+        build_expr(builder, expr_var.super_expr)
+        strings.write_string(builder, "</msup>")
     }
 }
 
