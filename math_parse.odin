@@ -2,11 +2,17 @@ package main
 
 import "core:fmt"
 
-parse_math_expr :: proc(content: string, index: ^int) -> []^Expr {
+parse_math_expr :: proc(content: string, index: ^int, single_dollar: bool) -> []^Expr {
     exprs := parse_exprs(content, index)
 	
 	token := parse_token(content, index^)
-	assert(token.kind == .Math_End)
+	if single_dollar {
+		assert(token.kind == .Dollar)
+	} else {
+		assert(token.kind == .Double_Dollar)
+	}
+	
+	index^ = token.end
 	
 	return exprs
 }
@@ -21,7 +27,7 @@ parse_exprs :: proc(content: string, index: ^int) -> []^Expr {
 		token := parse_token(content, index^)
 		
 		#partial switch token.kind {
-		case .Math_End:
+		case .Dollar, .Double_Dollar:
 			append(&exprs, expr)
 			break loop
 

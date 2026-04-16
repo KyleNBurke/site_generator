@@ -7,7 +7,8 @@ Token :: struct {
 
 Token_Kind :: enum {
 	File_End,
-	Math_End,
+	Dollar,
+	Double_Dollar,
 	Identifier,
 	String,
 	Number,
@@ -40,7 +41,14 @@ parse_token :: proc(content: string, index: int) -> Token {
 
 	switch c {
 	case '$':
-		token.kind = .Math_End
+		index += 1
+		
+		if content[index] == '$' {
+			index += 1
+			token.kind = .Double_Dollar
+		} else {
+			token.kind = .Dollar
+		}
 	
 	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')':
 		index += 1

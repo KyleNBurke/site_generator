@@ -34,20 +34,13 @@ main :: proc() {
         file_data, read_error := os.read_entire_file(file_info.fullpath, context.allocator)
         fmt.assertf(read_error == nil, "Failed to read page file %v\nError: %v", file_info.fullpath, read_error)
         file_text := transmute(string) file_data
-
-        result, split_error := strings.split(file_text, "#---")
-		assert(len(result) == 2)
-        assert(split_error == .None)
-
-        metadata := result[0]
-        content := result[1]
-
-        article: Article
         
         // Metadata
+		article: Article
+		
         for {
-            line, ok := strings.split_lines_iterator(&metadata)
-            if !ok do break
+            line, ok := strings.split_lines_iterator(&file_text)
+            if !ok || line == "#---" do break
             if line == "" do continue
             
             result, split_error := strings.split(line, "=")
@@ -72,19 +65,24 @@ main :: proc() {
 
         index := 0
 
-        for index < len(content) {
-            r := content[index]
+        for index < len(file_text) {
+            r := file_text[index]
 
             switch r {
             case '\n':
                 index += 1
+			
+			case '\r':
+				next_r := file_text[index + 1]
+				assert(next_r == '\n')
+				index += 2
 
             case '#':
                 index += 1
                 level := 1
                 
-                for index < len(content) {
-                    r = content[index]
+                for index < len(file_text) {
+                    r = file_text[index]
                     if r != '#' do break
                     index += 1
                     level += 1
@@ -95,13 +93,13 @@ main :: proc() {
 
                 start := index
 
-                for index < len(content) {
-                    r := content[index]
+                for index < len(file_text) {
+                    r := file_text[index]
                     index += 1
                     if r == '\n' do break
                 }
 
-                heading := strings.trim_space(content[start : index])
+                heading := strings.trim_space(file_text[start : index])
                 strings.write_string(&article_builder, heading)
 
                 heading_close := fmt.tprintf("</h%v>", level)
@@ -110,7 +108,7 @@ main :: proc() {
                 strings.write_rune(&article_builder, '\n')
 
             case:
-                build_paragraph(&article_builder, content, &index)
+                build_paragraph(&article_builder, file_text, &index)
             }
         }
 
@@ -202,12 +200,19 @@ build_paragraph :: proc(builder: ^strings.Builder, content: string, index: ^int)
         r := content[index^]
 
         switch r {
-        case '\n':
+        case '\r', '\n':
             break loop
         
         case '$':
             index^ += 1
-            build_math(builder, content, index)
+			single_dollar := true
+			
+			if content[index^] == '$' {
+				index^ += 1
+				single_dollar = false
+			}
+            
+			build_math(builder, content, index, single_dollar)
 
         case:
             strings.write_byte(builder, r)
@@ -222,11 +227,17 @@ build_paragraph :: proc(builder: ^strings.Builder, content: string, index: ^int)
     index^ += 1
 }
 
-build_math :: proc(builder: ^strings.Builder, content: string, index: ^int) {
-    expr := parse_math_expr(content, index)
+build_math :: proc(builder: ^strings.Builder, content: string, index: ^int, single_dollar: bool) {
+    expr := parse_math_expr(content, index, single_dollar)
     
-    strings.write_string(builder, "<math>")
+	if single_dollar {
+    	strings.write_string(builder, "<math>")
+	} else {
+		strings.write_string(builder, "<math display=\"block\">")
+	}
+
     build_math_html(builder, expr)
+	
     strings.write_string(builder, "</math>")
 }
 
