@@ -35,7 +35,8 @@ main :: proc() {
         fmt.assertf(read_error == nil, "Failed to read page file %v\nError: %v", file_info.fullpath, read_error)
         file_text := transmute(string) file_data
 
-        result, split_error := strings.split(file_text, "---")
+        result, split_error := strings.split(file_text, "#---")
+		assert(len(result) == 2)
         assert(split_error == .None)
 
         metadata := result[0]
@@ -229,8 +230,10 @@ build_math :: proc(builder: ^strings.Builder, content: string, index: ^int) {
     strings.write_string(builder, "</math>")
 }
 
-build_math_html :: proc(builder: ^strings.Builder, expr: ^Expr) {
-    build_expr(builder, expr)
+build_math_html :: proc(builder: ^strings.Builder, exprs: []^Expr) {
+	for expr in exprs {
+    	build_expr(builder, expr)
+	}
 }
 
 build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
@@ -258,27 +261,15 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
         build_expr(builder, expr_var.super_expr)
         strings.write_string(builder, "</msup>")
 	
-	case ^Binary_Operator_Expr:
-		switch expr_var.op {
-		case '^':
-			strings.write_string(builder, "<msup>")
-			build_expr(builder, expr_var.left_expr)
-			build_expr(builder, expr_var.right_expr)
-			strings.write_string(builder, "</msup>")
-		
-		case '+', '=':
-			build_expr(builder, expr_var.left_expr)
-			strings.write_string(builder, "<mo>")
-			strings.write_byte(builder, expr_var.op)
-			strings.write_string(builder, "</mo>")
-			build_expr(builder, expr_var.right_expr)
-		
-		case 0:
-			build_expr(builder, expr_var.left_expr)
-			build_expr(builder, expr_var.right_expr)
-		}
+	case ^Operator_Expr:
+		strings.write_string(builder, "<mo>")
+		strings.write_byte(builder, expr_var.op)
+		strings.write_string(builder, "</mo>")
 
-		
+	case ^Row_Expr:
+		strings.write_string(builder, "<row>")
+        build_expr(builder, expr_var.row_expr)
+        strings.write_string(builder, "</row>")
     }
 }
 

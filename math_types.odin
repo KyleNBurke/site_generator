@@ -13,7 +13,8 @@ Expr :: struct {
 		^Number_Expr,
         ^Subscript_Expr,
         ^Superscript_Expr,
-		^Binary_Operator_Expr,
+		^Operator_Expr,
+		^Row_Expr,
     }
 }
 
@@ -44,10 +45,12 @@ Superscript_Expr :: struct {
     super_expr: ^Expr,
 }
 
-// Rename to binary operator expression?
-Binary_Operator_Expr :: struct {
+Operator_Expr :: struct {
 	using expr: Expr,
 	op: u8,
-	left_expr: ^Expr,
-	right_expr: ^Expr,
+}
+
+Row_Expr :: struct {
+	using expr: Expr,
+	row_expr: ^Expr,
 }

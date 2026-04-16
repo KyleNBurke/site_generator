@@ -14,8 +14,9 @@ Token_Kind :: enum {
 	Equals,
 	Carrot,
 	Underscore,
-	Plus,
-	Open_Parenthesis,
+	Operator,
+	Open_Curly_Brace,
+	Close_Curly_Brace,
 }
 
 parse_token :: proc(content: string, index: int) -> Token {
@@ -60,9 +61,17 @@ parse_token :: proc(content: string, index: int) -> Token {
 		index += 1
 		token.kind = .Carrot
 	
-	case '+':
+	case '+', '-':
 		index += 1
-		token.kind = .Plus
+		token.kind = .Operator
+	
+	case '{':
+		index += 1
+		token.kind = .Open_Curly_Brace
+	
+	case '}':
+		index += 1
+		token.kind = .Close_Curly_Brace
 
 	case:
 		unimplemented()
