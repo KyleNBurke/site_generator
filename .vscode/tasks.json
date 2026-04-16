@@ -3,8 +3,14 @@
     "command": "",
     "args": [],
     "tasks": [
+		{
+            "label": "build_windows",
+            "type": "shell",
+            "command": "./build.bat",
+            "group": "build"
+        },
         {
-            "label": "build",
+            "label": "build_mac",
             "type": "shell",
             "command": "./build.zsh",
             "group": "build"

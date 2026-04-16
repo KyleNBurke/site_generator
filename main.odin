@@ -239,13 +239,46 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
         strings.write_string(builder, "<mi>")
         strings.write_string(builder, expr_var.str)
         strings.write_string(builder, "</mi>")
+	
+	case ^String_Expr:
+        strings.write_string(builder, "<ms>")
+        strings.write_string(builder, expr_var.str)
+        strings.write_string(builder, "</ms>")
+	
+	case ^Number_Expr:
+		strings.write_string(builder, "<mn>")
+        strings.write_string(builder, expr_var.str)
+        strings.write_string(builder, "</mn>")
         
 	case ^Subscript_Expr:
+
 	case ^Superscript_Expr:
         strings.write_string(builder, "<msup>")
         build_expr(builder, expr_var.base_expr)
         build_expr(builder, expr_var.super_expr)
         strings.write_string(builder, "</msup>")
+	
+	case ^Binary_Operator_Expr:
+		switch expr_var.op {
+		case '^':
+			strings.write_string(builder, "<msup>")
+			build_expr(builder, expr_var.left_expr)
+			build_expr(builder, expr_var.right_expr)
+			strings.write_string(builder, "</msup>")
+		
+		case '+', '=':
+			build_expr(builder, expr_var.left_expr)
+			strings.write_string(builder, "<mo>")
+			strings.write_byte(builder, expr_var.op)
+			strings.write_string(builder, "</mo>")
+			build_expr(builder, expr_var.right_expr)
+		
+		case 0:
+			build_expr(builder, expr_var.left_expr)
+			build_expr(builder, expr_var.right_expr)
+		}
+
+		
     }
 }
 
