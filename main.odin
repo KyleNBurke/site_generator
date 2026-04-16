@@ -228,7 +228,7 @@ build_paragraph :: proc(builder: ^strings.Builder, content: string, index: ^int)
 }
 
 build_math :: proc(builder: ^strings.Builder, content: string, index: ^int, single_dollar: bool) {
-    expr := parse_math_expr(content, index, single_dollar)
+    exprs := parse_math_expr(content, index, single_dollar)
     
 	if single_dollar {
     	strings.write_string(builder, "<math>")
@@ -236,15 +236,11 @@ build_math :: proc(builder: ^strings.Builder, content: string, index: ^int, sing
 		strings.write_string(builder, "<math display=\"block\">")
 	}
 
-    build_math_html(builder, expr)
-	
-    strings.write_string(builder, "</math>")
-}
-
-build_math_html :: proc(builder: ^strings.Builder, exprs: []^Expr) {
-	for expr in exprs {
+    for expr in exprs {
     	build_expr(builder, expr)
 	}
+
+    strings.write_string(builder, "</math>")
 }
 
 build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
@@ -256,7 +252,13 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 	
 	case ^String_Expr:
         strings.write_string(builder, "<ms>")
-        strings.write_string(builder, expr_var.str)
+
+		if expr_var.str == ", " {
+			strings.write_string(builder, ",&nbsp;")
+		} else {
+			strings.write_string(builder, expr_var.str)
+		}
+        
         strings.write_string(builder, "</ms>")
 	
 	case ^Number_Expr:
@@ -277,8 +279,21 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
         strings.write_string(builder, "</msub>")
 	
 	case ^Operator_Expr:
+		op: string
+
+		switch expr_var.op {
+		case "+", "-", "=":
+			op = expr_var.op
+		
+		case "\\in":
+			op = "&isin;"
+		
+		case:
+			fmt.panicf("Operator not supported \"%s\"", expr_var.op)
+		}
+		
 		strings.write_string(builder, "<mo>")
-		strings.write_byte(builder, expr_var.op)
+		strings.write_string(builder, op)
 		strings.write_string(builder, "</mo>")
 
 	case ^Row_Expr:

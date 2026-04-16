@@ -10,3 +10,9 @@ Let's start with the following pseudo code for generating our set of signed dist
 The formula for a quadratic Bézier curve is
 
 $$B(t) = (1-t)^2P_0 + 2t(1-t)P_1 + t^2P_2$$
+
+where $t \in [0, 1]$
+
+$t = 0, B(t) = P_0$
+
+$t = 0$, $B(t) = P_0$

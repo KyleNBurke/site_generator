@@ -47,7 +47,8 @@ Subscript_Expr :: struct {
 
 Operator_Expr :: struct {
 	using expr: Expr,
-	op: u8,
+	op: string,
+	right_space: bool,
 }
 
 Row_Expr :: struct {

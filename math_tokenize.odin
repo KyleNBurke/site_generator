@@ -1,5 +1,7 @@
 package main
 
+import "core:fmt"
+
 Token :: struct {
 	start, end: int,
 	kind: Token_Kind,
@@ -43,14 +45,14 @@ parse_token :: proc(content: string, index: int) -> Token {
 	case '$':
 		index += 1
 		
-		if content[index] == '$' {
+		if index < len(content) && content[index] == '$' {
 			index += 1
 			token.kind = .Double_Dollar
 		} else {
 			token.kind = .Dollar
 		}
 	
-	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')':
+	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')', '[', ']':
 		index += 1
 		token.kind = .Identifier
 		// token.kind = parse_letter(content, &index)
@@ -72,6 +74,14 @@ parse_token :: proc(content: string, index: int) -> Token {
 		index += 1
 		token.kind = .Operator
 	
+	case ',':
+		index += 1
+		token.kind = .String
+
+		if content[index] == ' ' {
+			index += 1
+		}
+	
 	case '{':
 		index += 1
 		token.kind = .Open_Curly_Brace
@@ -79,9 +89,14 @@ parse_token :: proc(content: string, index: int) -> Token {
 	case '}':
 		index += 1
 		token.kind = .Close_Curly_Brace
+	
+	case '\\':
+		index += 1
+		parse_backslash(content, &index)
+		token.kind = .Operator
 
 	case:
-		unimplemented()
+		fmt.panicf("Unsupportd character '%r'", c)
 	}
 
 	token.end = index
@@ -109,6 +124,16 @@ parse_number :: proc(content: string, index: ^int) {
 	for {
 		c := content[index^]
 		if c < '0' || c > '9' do break
+		index^ += 1
+	}
+}
+
+parse_backslash :: proc(content: string, index: ^int) {
+	start := index^
+	
+	for {
+		c := content[index^]
+		if c < 'a' || c > 'z' do break
 		index^ += 1
 	}
 }

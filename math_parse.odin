@@ -82,7 +82,7 @@ parse_terminal_expr :: proc(content: string, index: ^int) -> ^Expr {
 	case .Operator:
 		index^ = token.end
 		op_expr := make_expr(Operator_Expr)
-		op_expr.op = content[token.start]
+		op_expr.op = content[token.start : token.end]		
 		expr = op_expr
 	
 	case .Open_Curly_Brace:
