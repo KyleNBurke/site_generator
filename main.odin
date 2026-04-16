@@ -252,14 +252,18 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		strings.write_string(builder, "<mn>")
         strings.write_string(builder, expr_var.str)
         strings.write_string(builder, "</mn>")
-        
-	case ^Subscript_Expr:
 
 	case ^Superscript_Expr:
         strings.write_string(builder, "<msup>")
         build_expr(builder, expr_var.base_expr)
         build_expr(builder, expr_var.super_expr)
         strings.write_string(builder, "</msup>")
+        
+	case ^Subscript_Expr:
+		strings.write_string(builder, "<msub>")
+        build_expr(builder, expr_var.base_expr)
+        build_expr(builder, expr_var.sub_expr)
+        strings.write_string(builder, "</msub>")
 	
 	case ^Operator_Expr:
 		strings.write_string(builder, "<mo>")
@@ -267,9 +271,11 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		strings.write_string(builder, "</mo>")
 
 	case ^Row_Expr:
-		strings.write_string(builder, "<row>")
-        build_expr(builder, expr_var.row_expr)
-        strings.write_string(builder, "</row>")
+		strings.write_string(builder, "<mrow>")
+		for expr in expr_var.exprs {
+        	build_expr(builder, expr)
+		}
+        strings.write_string(builder, "</mrow>")
     }
 }
 

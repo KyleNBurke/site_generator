@@ -11,8 +11,8 @@ Expr :: struct {
         ^Ident_Expr,
 		^String_Expr,
 		^Number_Expr,
-        ^Subscript_Expr,
         ^Superscript_Expr,
+        ^Subscript_Expr,
 		^Operator_Expr,
 		^Row_Expr,
     }
@@ -33,16 +33,16 @@ Number_Expr :: struct {
     str: string,
 }
 
-Subscript_Expr :: struct {
-    using expr: Expr,
-    base_expr: ^Expr,
-    sub_expr: ^Expr,
-}
-
 Superscript_Expr :: struct {
     using expr: Expr,
     base_expr: ^Expr,
     super_expr: ^Expr,
+}
+
+Subscript_Expr :: struct {
+    using expr: Expr,
+    base_expr: ^Expr,
+    sub_expr: ^Expr,
 }
 
 Operator_Expr :: struct {
@@ -52,5 +52,5 @@ Operator_Expr :: struct {
 
 Row_Expr :: struct {
 	using expr: Expr,
-	row_expr: ^Expr,
+	exprs: []^Expr,
 }

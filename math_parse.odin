@@ -3,19 +3,22 @@ package main
 import "core:fmt"
 
 parse_math_expr :: proc(content: string, index: ^int) -> []^Expr {
-    return parse_expr(content, index)
+    exprs := parse_exprs(content, index)
+	
+	token := parse_token(content, index^)
+	assert(token.kind == .Math_End)
+	
+	return exprs
 }
 
-parse_expr :: proc(content: string, index: ^int) -> []^Expr {
+parse_exprs :: proc(content: string, index: ^int) -> []^Expr {
 	exprs: [dynamic]^Expr
 	
 	loop: for {
-		token := parse_token(content, index^)
-		if token.kind == .Math_End do break
-		
 		expr := parse_terminal_expr(content, index)
+		if expr == nil do break
 
-		token = parse_token(content, index^)
+		token := parse_token(content, index^)
 		
 		#partial switch token.kind {
 		case .Math_End:
@@ -30,6 +33,15 @@ parse_expr :: proc(content: string, index: ^int) -> []^Expr {
 			superscript_expr.super_expr = parse_terminal_expr(content, index)
 
 			expr = superscript_expr
+		
+		case .Underscore:
+			index^ = token.end
+
+			subscript_expr := make_expr(Subscript_Expr)
+			subscript_expr.base_expr = expr
+			subscript_expr.sub_expr = parse_terminal_expr(content, index)
+
+			expr = subscript_expr
 		}
 
 		append(&exprs, expr)
@@ -38,92 +50,47 @@ parse_expr :: proc(content: string, index: ^int) -> []^Expr {
 	return exprs[:]
 }
 
-/*
-parse_expr_old :: proc(content: string, index: ^int, min_bp: int) -> ^Expr {
-	left_expr := parse_terminal_expr(content, index)
-
-	loop: for {
-		token := parse_token(content, index^)
-		l_bp, r_bp: int
-		op: u8
-
-		#partial switch token.kind {
-		case .Math_End:
-			break loop
-			
-		case .Plus, .Equals:
-			index^ = token.end
-			l_bp, r_bp = 1, 2
-			op = content[token.start]
-		
-		case .Carrot:
-			index^ = token.end
-			l_bp, r_bp = 3, 4
-			op = content[token.start]
-		
-		case:
-			l_bp, r_bp = 1, 2
-			// break loop
-		}
-
-		if l_bp < min_bp {
-			break
-		}
-		
-		right_expr := parse_expr(content, index, r_bp)
-
-		op_expr := make_expr(Binary_Operator_Expr)
-		op_expr.op = op
-		op_expr.left_expr = left_expr
-		op_expr.right_expr = right_expr
-
-		left_expr = op_expr
-	}
-
-	return left_expr
-}
-*/
-
 parse_terminal_expr :: proc(content: string, index: ^int) -> ^Expr {
+	expr: ^Expr
     token := parse_token(content, index^)
 
 	#partial switch token.kind {
 	case .Identifier:
 		index^ = token.end
-		expr := make_expr(Ident_Expr)
-		expr.str = content[token.start : token.end]
-		return expr
+		ident_expr := make_expr(Ident_Expr)
+		ident_expr.str = content[token.start : token.end]
+		expr = ident_expr
 	
 	case .String:
 		index^ = token.end
-		expr := make_expr(String_Expr)
-		expr.str = content[token.start : token.end]
-		return expr
+		string_expr := make_expr(String_Expr)
+		string_expr.str = content[token.start : token.end]
+		expr = string_expr
 	
 	case .Number:
 		index^ = token.end
-		expr := make_expr(Number_Expr)
-		expr.str = content[token.start : token.end]
-		return expr
+		number_expr := make_expr(Number_Expr)
+		number_expr.str = content[token.start : token.end]
+		expr = number_expr
 	
 	case .Operator:
 		index^ = token.end
-		expr := make_expr(Operator_Expr)
-		expr.op = content[token.start]
-		return expr
+		op_expr := make_expr(Operator_Expr)
+		op_expr.op = content[token.start]
+		expr = op_expr
 	
-	// case .Open_Curly_Brace:
-	// 	index^ = token.end
-		
-	// 	row_expr := make_expr(Row_Expr)
-	// 	row_expr.row_expr = parse_expr(content, index)
-		
-	// 	token = parse_token(content, index^)
-	// 	assert(token.kind == .Close_Curly_Brace)
-	// 	index^ = token.end
-		
-	// 	expr = row_expr
+	case .Open_Curly_Brace:
+		index^ = token.end
+
+		row_expr := make_expr(Row_Expr)
+		row_expr.exprs = parse_exprs(content, index)
+
+		token = parse_token(content, index^)
+		assert(token.kind == .Close_Curly_Brace)
+		index^ = token.end
+
+		expr = row_expr
 	}
 
-	unreachable()
+	return expr
 }

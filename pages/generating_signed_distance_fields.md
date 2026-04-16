@@ -7,6 +7,5 @@ Popularized by Valve, signed distance fields provide an efficient way to display
 # The algorithm
 Let's start with the following pseudo code for generating our set of signed distance fields.
 
-math test: $a - b^2+4^2-g$
+math test: $B(t) = (1-t)^2P_0 + 2t(1-t)P_1 + t^2P_2$
 
-B(t) = (1-t)^2P_0 + 2t(1-t)P_1 + t^2P_2

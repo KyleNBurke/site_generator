@@ -11,7 +11,6 @@ Token_Kind :: enum {
 	Identifier,
 	String,
 	Number,
-	Equals,
 	Carrot,
 	Underscore,
 	Operator,
@@ -43,7 +42,7 @@ parse_token :: proc(content: string, index: int) -> Token {
 	case '$':
 		token.kind = .Math_End
 	
-	case 'a' ..= 'z':
+	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')':
 		index += 1
 		token.kind = .Identifier
 		// token.kind = parse_letter(content, &index)
@@ -53,15 +52,15 @@ parse_token :: proc(content: string, index: int) -> Token {
 		parse_number(content, &index)
 		token.kind = .Number
 	
-	case '=':
-		index += 1
-		token.kind = .Equals
-	
 	case '^':
 		index += 1
 		token.kind = .Carrot
 	
-	case '+', '-':
+	case '_':
+		index += 1
+		token.kind = .Underscore
+	
+	case '+', '-', '=':
 		index += 1
 		token.kind = .Operator
 	
