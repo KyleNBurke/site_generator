@@ -2,29 +2,29 @@ package main
 
 import "core:fmt"
 
-parse_math_expr :: proc(content: string, index: ^int, single_dollar: bool) -> []^Expr {
-    exprs := parse_exprs(content, index)
+parse_math_expr :: proc(text: string, pos: ^int, single_dollar: bool) -> []^Expr {
+    exprs := parse_exprs(text, pos)
 	
-	token := parse_token(content, index^)
+	token := parse_token(text, pos^)
 	if single_dollar {
 		assert(token.kind == .Dollar)
 	} else {
 		assert(token.kind == .Double_Dollar)
 	}
 	
-	index^ = token.end
+	pos^ = token.end
 	
 	return exprs
 }
 
-parse_exprs :: proc(content: string, index: ^int) -> []^Expr {
+parse_exprs :: proc(text: string, pos: ^int) -> []^Expr {
 	exprs: [dynamic]^Expr
 	
 	loop: for {
-		expr := parse_terminal_expr(content, index)
+		expr := parse_terminal_expr(text, pos)
 		if expr == nil do break
 
-		token := parse_token(content, index^)
+		token := parse_token(text, pos^)
 		
 		#partial switch token.kind {
 		case .Dollar, .Double_Dollar:
@@ -32,20 +32,20 @@ parse_exprs :: proc(content: string, index: ^int) -> []^Expr {
 			break loop
 
 		case .Carrot:
-			index^ = token.end
+			pos^ = token.end
 
 			superscript_expr := make_expr(Superscript_Expr)
 			superscript_expr.base_expr = expr
-			superscript_expr.super_expr = parse_terminal_expr(content, index)
+			superscript_expr.super_expr = parse_terminal_expr(text, pos)
 
 			expr = superscript_expr
 		
 		case .Underscore:
-			index^ = token.end
+			pos^ = token.end
 
 			subscript_expr := make_expr(Subscript_Expr)
 			subscript_expr.base_expr = expr
-			subscript_expr.sub_expr = parse_terminal_expr(content, index)
+			subscript_expr.sub_expr = parse_terminal_expr(text, pos)
 
 			expr = subscript_expr
 		}
@@ -56,44 +56,44 @@ parse_exprs :: proc(content: string, index: ^int) -> []^Expr {
 	return exprs[:]
 }
 
-parse_terminal_expr :: proc(content: string, index: ^int) -> ^Expr {
+parse_terminal_expr :: proc(text: string, pos: ^int) -> ^Expr {
 	expr: ^Expr
-    token := parse_token(content, index^)
+    token := parse_token(text, pos^)
 
 	#partial switch token.kind {
 	case .Identifier:
-		index^ = token.end
+		pos^ = token.end
 		ident_expr := make_expr(Ident_Expr)
-		ident_expr.str = content[token.start : token.end]
+		ident_expr.str = text[token.start : token.end]
 		expr = ident_expr
 	
 	case .String:
-		index^ = token.end
+		pos^ = token.end
 		string_expr := make_expr(String_Expr)
-		string_expr.str = content[token.start : token.end]
+		string_expr.str = text[token.start : token.end]
 		expr = string_expr
 	
 	case .Number:
-		index^ = token.end
+		pos^ = token.end
 		number_expr := make_expr(Number_Expr)
-		number_expr.str = content[token.start : token.end]
+		number_expr.str = text[token.start : token.end]
 		expr = number_expr
 	
 	case .Operator:
-		index^ = token.end
+		pos^ = token.end
 		op_expr := make_expr(Operator_Expr)
-		op_expr.op = content[token.start : token.end]		
+		op_expr.op = text[token.start : token.end]		
 		expr = op_expr
 	
 	case .Open_Curly_Brace:
-		index^ = token.end
+		pos^ = token.end
 
 		row_expr := make_expr(Row_Expr)
-		row_expr.exprs = parse_exprs(content, index)
+		row_expr.exprs = parse_exprs(text, pos)
 
-		token = parse_token(content, index^)
+		token = parse_token(text, pos^)
 		assert(token.kind == .Close_Curly_Brace)
-		index^ = token.end
+		pos^ = token.end
 
 		expr = row_expr
 	}

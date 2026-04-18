@@ -21,85 +21,86 @@ Token_Kind :: enum {
 	Close_Curly_Brace,
 }
 
-parse_token :: proc(content: string, index: int) -> Token {
-	index := index
+parse_token :: proc(text: string, pos: int) -> Token {
+	pos := pos
 	
 	// Skip preceding whitespace
 	for {
-		if index == len(content) {
-			return Token { index, 0, .File_End }
+		// #todo: Use get_char()?
+		if pos == len(text) {
+			return Token { pos, 0, .File_End }
 		}
 
-		c := content[index]
+		c := text[pos]
 		if c != ' ' do break
-		index += 1
+		pos += 1
 	}
 
-	c := content[index]
+	c := text[pos]
 
 	token := Token {
-		start = index,
+		start = pos,
 	}
 
 	switch c {
 	case '$':
-		index += 1
+		pos += 1
 		
-		if index < len(content) && content[index] == '$' {
-			index += 1
+		if pos < len(text) && text[pos] == '$' {
+			pos += 1
 			token.kind = .Double_Dollar
 		} else {
 			token.kind = .Dollar
 		}
 	
 	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')', '[', ']':
-		index += 1
+		pos += 1
 		token.kind = .Identifier
 		// token.kind = parse_letter(content, &index)
 	
 	case '0' ..= '9':
-		index += 1
-		parse_number(content, &index)
+		pos += 1
+		parse_number(text, &pos)
 		token.kind = .Number
 	
 	case '^':
-		index += 1
+		pos += 1
 		token.kind = .Carrot
 	
 	case '_':
-		index += 1
+		pos += 1
 		token.kind = .Underscore
 	
 	case '+', '-', '=':
-		index += 1
+		pos += 1
 		token.kind = .Operator
 	
 	case ',':
-		index += 1
+		pos += 1
 		token.kind = .String
 
-		if content[index] == ' ' {
-			index += 1
+		if text[pos] == ' ' {
+			pos += 1
 		}
 	
 	case '{':
-		index += 1
+		pos += 1
 		token.kind = .Open_Curly_Brace
 	
 	case '}':
-		index += 1
+		pos += 1
 		token.kind = .Close_Curly_Brace
 	
 	case '\\':
-		index += 1
-		parse_backslash(content, &index)
+		pos += 1
+		parse_backslash(text, &pos)
 		token.kind = .Operator
 
 	case:
 		fmt.panicf("Unsupportd character '%r'", c)
 	}
 
-	token.end = index
+	token.end = pos
 
 	return token
 }
@@ -120,20 +121,20 @@ parse_letter :: proc(content: string, index: ^int) -> Token_Kind {
 	return .String
 }
 
-parse_number :: proc(content: string, index: ^int) {
+parse_number :: proc(text: string, pos: ^int) {
 	for {
-		c := content[index^]
+		c := text[pos^]
 		if c < '0' || c > '9' do break
-		index^ += 1
+		pos^ += 1
 	}
 }
 
-parse_backslash :: proc(content: string, index: ^int) {
-	start := index^
+parse_backslash :: proc(text: string, pos: ^int) {
+	start := pos^
 	
 	for {
-		c := content[index^]
+		c := text[pos^]
 		if c < 'a' || c > 'z' do break
-		index^ += 1
+		pos^ += 1
 	}
 }

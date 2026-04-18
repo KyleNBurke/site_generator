@@ -9,6 +9,25 @@ Article :: struct {
     title: string,
 }
 
+get_char :: proc(text: string, pos: int) -> (u8, int) {
+	assert(pos <= len(text))
+	
+	if pos == len(text) {
+		return 0, 0
+	}
+	
+	c := text[pos]
+
+	// Convert '\r\n' to '\n'
+	if c == '\r' && pos < len(text) {
+		if text[pos + 1] == '\n' {
+			return '\n', 2
+		}
+	}
+
+	return c, 1
+}
+
 main :: proc() {
     fmt.assertf(len(os.args) > 1, "Error: Pages directory not provided.")
     pages_dir := os.args[1]
@@ -31,15 +50,15 @@ main :: proc() {
         extension := file_info.name[len(file_info.name) - 3:]
         if extension != ".md" do continue
 
-        file_data, read_error := os.read_entire_file(file_info.fullpath, context.allocator)
+        file_text, read_error := os.read_entire_file(file_info.fullpath, context.allocator)
         fmt.assertf(read_error == nil, "Failed to read page file %v\nError: %v", file_info.fullpath, read_error)
-        file_text := transmute(string) file_data
+		file_string := transmute(string) file_text
         
         // Metadata
 		article: Article
 		
         for {
-            line, ok := strings.split_lines_iterator(&file_text)
+            line, ok := strings.split_lines_iterator(&file_string)
             if !ok || line == "#---" do break
             if line == "" do continue
             
@@ -57,101 +76,72 @@ main :: proc() {
 
         // Content
         // #TODO: Use io.Writer somehow. I think we can directly write to the file ssytem.
-        article_builder := strings.builder_make()
+        builder := strings.builder_make()
 
-        strings.write_string(&article_builder, "<h1 class=\"title\">")
-        strings.write_string(&article_builder, article.title)
-        strings.write_string(&article_builder, "</h1>\n")
+        strings.write_string(&builder, "<h1 class=\"title\">")
+        strings.write_string(&builder, article.title)
+        strings.write_string(&builder, "</h1>\n")
 
-        index := 0
+        pos := 0
 
-        for index < len(file_text) {
-            r := file_text[index]
+        loop: for {
+			c, c_size := get_char(file_string, pos)
 
-            switch r {
-            case '\n':
-                index += 1
+            switch c {
+			case 0:
+				break loop
 			
-			case '\r':
-				next_r := file_text[index + 1]
-				assert(next_r == '\n')
-				index += 2
+			case '\n':
+				pos += c_size
+				continue
 
             case '#':
-                index += 1
+				pos += 1
                 level := 1
-                
-                for index < len(file_text) {
-                    r = file_text[index]
-                    if r != '#' do break
-                    index += 1
-                    level += 1
-                }
+
+				for {
+					c, c_size = get_char(file_string, pos)
+					if c != '#' do break
+					pos += 1
+					level += 1
+				}
 
                 heading_open := fmt.tprintf("<h%v>", level)
-                strings.write_string(&article_builder, heading_open)
+                strings.write_string(&builder, heading_open)
 
-                start := index
-
-                for index < len(file_text) {
-                    r := file_text[index]
-                    index += 1
-                    if r == '\n' do break
-                }
-
-                heading := strings.trim_space(file_text[start : index])
-                strings.write_string(&article_builder, heading)
-
-                heading_close := fmt.tprintf("</h%v>", level)
-                strings.write_string(&article_builder, heading_close)
-
-                strings.write_rune(&article_builder, '\n')
-
-            case:
-                build_paragraph(&article_builder, file_text, &index)
-            }
-        }
-
-        /*
-        for {
-            line, ok := strings.split_lines_iterator(&content)
-            if !ok do break
-            if line == "" do continue
-
-            if strings.starts_with(line, "##") {
-                line = strings.trim_space(line[2:])
-                strings.write_string(&article_builder, "<h2>")
-                strings.write_string(&article_builder, line)
-                strings.write_string(&article_builder, "</h2>")
-            } else if strings.starts_with(line, "#") {
-                line = strings.trim_space(line[1:])
-                strings.write_string(&article_builder, "<h1>")
-                strings.write_string(&article_builder, line)
-                strings.write_string(&article_builder, "</h1>")
-            } else if strings.starts_with(line, "```") {
-                strings.write_string(&article_builder, "<pre><code>")
+                start := pos
 
                 for {
-                    line, ok := strings.split_lines_iterator(&content)
-                    fmt.assertf(ok, "Code block was not closed")
-                    if line == "```" do break
-
-                    strings.write_string(&article_builder, line)
-                    strings.write_rune(&article_builder, '\n')
+					c, c_size = get_char(file_string, pos)
+					if c == 0 do break
+					pos += 1
+					if c == '\n' do break
                 }
 
-                strings.write_string(&article_builder, "</code></pre>")
-            } else {
-                strings.write_string(&article_builder, "<p>")
-                strings.write_string(&article_builder, line)
-                strings.write_string(&article_builder, "</p>")
+                heading := strings.trim_space(file_string[start : pos])
+                strings.write_string(&builder, heading)
+
+                heading_close := fmt.tprintf("</h%v>", level)
+                strings.write_string(&builder, heading_close)
+
+                strings.write_rune(&builder, '\n')
+
+			case '-':
+				pos += 1
+				strings.write_string(&builder, "<ul>")
+
+				// for {
+
+				// }
+
+				strings.write_string(&builder, "</ul>")
+
+            case:
+                build_paragraph(&builder, file_string, &pos, c)
             }
-
-            strings.write_rune(&article_builder, '\n')
         }
-        */
 
-        article_html := strings.to_string(article_builder)
+        article_html := strings.to_string(builder)
 
         file_stem := file_info.name[:len(file_info.name) - 3]
         file_name := fmt.tprintf("%s.html", file_stem)
@@ -193,42 +183,44 @@ main :: proc() {
     os.copy_file("site/style.css", "style.css")
 }
 
-build_paragraph :: proc(builder: ^strings.Builder, content: string, index: ^int) {
+build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u8) {
     strings.write_string(builder, "<p>")
 
-    loop: for index^ < len(content) {
-        r := content[index^]
+    loop: for {
+		c, c_size := get_char(text, pos^)
+		if c == 0 do break
+		
+		pos^ += c_size
 
-        switch r {
-        case '\r', '\n':
+        switch c {
+        case 0:
+			break loop
+		
+		case '\n':
             break loop
         
         case '$':
-            index^ += 1
 			single_dollar := true
 			
-			if content[index^] == '$' {
-				index^ += 1
+			next_c, _ := get_char(text, pos^)
+			if next_c == '$' {
+				pos^ += 1
 				single_dollar = false
 			}
             
-			build_math(builder, content, index, single_dollar)
+			build_math(builder, text, pos, single_dollar)
 
         case:
-            strings.write_byte(builder, r)
+            strings.write_byte(builder, c)
         }
-
-        index^ += 1
     }
 
     strings.write_string(builder, "</p>")
     strings.write_rune(builder, '\n')
-
-    index^ += 1
 }
 
-build_math :: proc(builder: ^strings.Builder, content: string, index: ^int, single_dollar: bool) {
-    exprs := parse_math_expr(content, index, single_dollar)
+build_math :: proc(builder: ^strings.Builder, text: string, pos: ^int, single_dollar: bool) {
+    exprs := parse_math_expr(text, pos, single_dollar)
     
 	if single_dollar {
     	strings.write_string(builder, "<math>")
