@@ -127,12 +127,27 @@ main :: proc() {
                 strings.write_rune(&builder, '\n')
 
 			case '-':
-				pos += 1
+				// #todo: Unordered list items actually need a following space: "- "
 				strings.write_string(&builder, "<ul>")
 
-				// for {
+				for {
+					c, c_size = get_char(file_string, pos)
+					if c != '-' do break
+					pos += 1
+					line_start := pos
 
-				// }
+					for {
+						c, c_size = get_char(file_string, pos)
+						pos += c_size
+						if c == 0 || c == '\n' do break
+					}
+
+					line := strings.trim_space(file_string[line_start : pos])
+
+					strings.write_string(&builder, "<li>")
+					strings.write_string(&builder, line)
+					strings.write_string(&builder, "</li>")
+				}
 
 				strings.write_string(&builder, "</ul>")
 
