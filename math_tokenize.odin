@@ -58,7 +58,7 @@ parse_token :: proc(text: string, pos: int) -> Token {
 		token.kind = .Identifier
 		// token.kind = parse_letter(content, &index)
 	
-	case '0' ..= '9':
+	case '0' ..= '9', '.':
 		pos += 1
 		parse_number(text, &pos)
 		token.kind = .Number
@@ -124,7 +124,8 @@ parse_letter :: proc(content: string, index: ^int) -> Token_Kind {
 parse_number :: proc(text: string, pos: ^int) {
 	for {
 		c := text[pos^]
-		if c < '0' || c > '9' do break
+		// #todo: We should really only allow one period
+		if (c < '0' || c > '9') && c != '.' do break
 		pos^ += 1
 	}
 }

@@ -128,24 +128,24 @@ main :: proc() {
 
 			case '-':
 				// #todo: Unordered list items actually need a following space: "- "
+				// #todo: Trim trailing and leading space: <li> hello </li>
 				strings.write_string(&builder, "<ul>")
 
 				for {
 					c, c_size = get_char(file_string, pos)
 					if c != '-' do break
 					pos += 1
-					line_start := pos
+
+					strings.write_string(&builder, "<li>") // #todo
 
 					for {
 						c, c_size = get_char(file_string, pos)
 						pos += c_size
-						if c == 0 || c == '\n' do break
+						if c == '0' || c == '\n' do break
+						
+						handle_char(&builder, file_string, &pos, c)
 					}
 
-					line := strings.trim_space(file_string[line_start : pos])
-
-					strings.write_string(&builder, "<li>")
-					strings.write_string(&builder, line)
 					strings.write_string(&builder, "</li>")
 				}
 
@@ -196,6 +196,22 @@ main :: proc() {
     assert(error == nil)
 
     os.copy_file("site/style.css", "style.css")
+}
+
+handle_char :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u8) {
+	if c == '$' {	
+		single_dollar := true
+			
+		next_c, _ := get_char(text, pos^)
+		if next_c == '$' {
+			pos^ += 1
+			single_dollar = false
+		}
+		
+		build_math(builder, text, pos, single_dollar)
+	} else {
+		strings.write_byte(builder, c)
+	}
 }
 
 build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u8) {
