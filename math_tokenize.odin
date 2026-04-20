@@ -53,7 +53,7 @@ parse_token :: proc(text: string, pos: int) -> Token {
 			token.kind = .Dollar
 		}
 	
-	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')', '[', ']':
+	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')', '[', ']', '|', '\'': // #todo: single qoute doesn't look as good
 		pos += 1
 		token.kind = .Identifier
 		// token.kind = parse_letter(content, &index)

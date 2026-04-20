@@ -19,3 +19,7 @@ Given $t$, $B(t)$ will result in a point along the curve. Similar to the line se
 - $t = 1, B(t) = P_2$
 
 Let's now define a new function given our point $p$.
+
+$$f(t) = |B(t) - p|^2$$
+
+Because $B(t)$ and $p$ are points, $B(t) - p$ is a vector and $f(t)$ is the magnitude squared of that vector. Put another way, given $t$, $f(t)$ is the distance squared between point $p$ and point $B(t)$. Therefore, to find the shortest distance between $p$ and the curve, we must find $t' \in [0, 1]$, where $f(t')$ is the global minimum in the range.
