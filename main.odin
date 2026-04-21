@@ -150,15 +150,23 @@ main :: proc() {
 					for {
 						c, c_size = get_char(file_string, pos)
 						pos += c_size
-						if c == '0' || c == '\n' do break
+						if c == 0 || c == '\n' do break
 						
-						handle_char(&builder, file_string, &pos, c)
+						if c == '$' {
+							handle_math_char(&builder, file_string, &pos)
+						} else {
+							strings.write_byte(&builder, c)
+						}
 					}
 
 					strings.write_string(&builder, "</li>")
 				}
 
 				strings.write_string(&builder, "</ul>")
+			
+			case '$':
+				pos += 1
+				handle_math_char(&builder, file_string, &pos)
 
             case:
                 build_paragraph(&builder, file_string, &pos, c)
@@ -207,60 +215,16 @@ main :: proc() {
     os.copy_file("site/style.css", "style.css")
 }
 
-handle_char :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u8) {
-	if c == '$' {	
-		single_dollar := true
+handle_math_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+	single_dollar := true
 			
-		next_c, _ := get_char(text, pos^)
-		if next_c == '$' {
-			pos^ += 1
-			single_dollar = false
-		}
-		
-		build_math(builder, text, pos, single_dollar)
-	} else {
-		strings.write_byte(builder, c)
+	next_c, _ := get_char(text, pos^)
+	if next_c == '$' {
+		pos^ += 1
+		single_dollar = false
 	}
-}
-
-build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u8) {
-    strings.write_string(builder, "<p>")
-
-    loop: for {
-		c, c_size := get_char(text, pos^)
-		if c == 0 do break
-		
-		pos^ += c_size
-
-        switch c {
-        case 0:
-			break loop
-		
-		case '\n':
-            break loop
-        
-        case '$':
-			single_dollar := true
-			
-			next_c, _ := get_char(text, pos^)
-			if next_c == '$' {
-				pos^ += 1
-				single_dollar = false
-			}
-            
-			build_math(builder, text, pos, single_dollar)
-
-        case:
-            strings.write_byte(builder, c)
-        }
-    }
-
-    strings.write_string(builder, "</p>")
-    strings.write_rune(builder, '\n')
-}
-
-build_math :: proc(builder: ^strings.Builder, text: string, pos: ^int, single_dollar: bool) {
-    exprs := parse_math_expr(text, pos, single_dollar)
+	
+	exprs := parse_math_expr(text, pos, single_dollar)
     
 	if single_dollar {
     	strings.write_string(builder, "<math>")
@@ -273,6 +237,32 @@ build_math :: proc(builder: ^strings.Builder, text: string, pos: ^int, single_do
 	}
 
     strings.write_string(builder, "</math>")
+}
+
+build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u8) {
+    strings.write_string(builder, "<p>")
+
+    loop: for {
+		c, c_size := get_char(text, pos^)
+		pos^ += c_size
+
+        switch c {
+        case 0:
+			break loop
+		
+		case '\n':
+            break loop
+        
+        case '$':
+			handle_math_char(builder, text, pos)
+
+        case:
+            strings.write_byte(builder, c)
+        }
+    }
+
+    strings.write_string(builder, "</p>")
+    strings.write_rune(builder, '\n')
 }
 
 build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
