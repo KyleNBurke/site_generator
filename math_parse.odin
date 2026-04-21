@@ -111,9 +111,9 @@ parse_terminal_expr :: proc(text: string, pos: ^int) -> ^Expr {
 	
 	case .Open_Bracket, .Close_Bracket:
 		pos^ = token.end
-		op_expr := make_expr(Operator_Expr)
-		op_expr.op = text[token.start : token.end]
-		expr = op_expr
+		ident_expr := make_expr(Ident_Expr)
+		ident_expr.str = text[token.start : token.end]
+		expr = ident_expr
 	}
 
 	return expr

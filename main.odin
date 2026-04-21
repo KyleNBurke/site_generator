@@ -309,9 +309,16 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		
 		case "\\in": op = "&isin;"
 		case "\\ne": op = "&ne;"
+		case "\\left[": op = "["
+		case "\\right]": op = "]"
+		case "\\left(": op = "("
+		case "\\right)": op = ")"
 		
 		case:
-			fmt.panicf("Operator not supported \"%s\"", expr_var.op)
+			op = expr_var.op[1:]
+		
+		// case:
+		// 	fmt.panicf("Operator not supported \"%s\"", expr_var.op)
 		}
 		
 		strings.write_string(builder, "<mo>")

@@ -61,7 +61,6 @@ parse_token :: proc(text: string, pos: int) -> Token {
 	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')', '|', '\'': // #todo: single qoute doesn't look as good
 		pos += 1
 		token.kind = .Identifier
-		// token.kind = parse_letter(content, &index)
 	
 	case '0' ..= '9', '.':
 		pos += 1
@@ -155,6 +154,17 @@ parse_backslash :: proc(text: string, pos: ^int) -> Token_Kind {
 	switch str {
 	case "frac": return .Operator_Frac
 	case "sqrt": return .Operator_Sqrt
+	case "left":
+		c := text[pos^]
+		if c == '[' || c == '(' {
+			pos^ += 1
+		}
+		
+	case "right":
+		c := text[pos^]
+		if c == ']' || c == ')' {
+			pos^ += 1
+		}
 	}
 
 	return .Operator
