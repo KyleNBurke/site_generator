@@ -4,6 +4,8 @@ import "core:os"
 import "core:fmt"
 import "core:strings"
 
+METADATA_SEPARATOR :: "#---"
+
 Article :: struct {
     file_name: string,
     title: string,
@@ -53,13 +55,17 @@ main :: proc() {
         file_text, read_error := os.read_entire_file(file_info.fullpath, context.allocator)
         fmt.assertf(read_error == nil, "Failed to read page file %v\nError: %v", file_info.fullpath, read_error)
 		file_string := transmute(string) file_text
-        
-        // Metadata
+
+		sep_index := strings.index(file_string, METADATA_SEPARATOR)
+		fmt.assertf(sep_index != -1, "No metadata separator found.")
+
+		// Metadata
 		article: Article
-		
-        for {
-            line, ok := strings.split_lines_iterator(&file_string)
-            if !ok || line == "#---" do break
+		metadata := file_string[:sep_index]
+
+		for {
+            line, ok := strings.split_lines_iterator(&metadata)
+            if !ok do break
             if line == "" do continue
             
             result, split_error := strings.split(line, "=")
@@ -71,6 +77,9 @@ main :: proc() {
             switch key {
             case "title":
                 article.title = value
+			
+			case:
+				fmt.panicf("Invalid key %v", key)
             }
         }
 
@@ -82,7 +91,7 @@ main :: proc() {
         strings.write_string(&builder, article.title)
         strings.write_string(&builder, "</h1>\n")
 
-        pos := 0
+        pos := sep_index + len(METADATA_SEPARATOR)
 
         loop: for {
 			c, c_size := get_char(file_string, pos)
