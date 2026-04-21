@@ -304,11 +304,11 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		op: string
 
 		switch expr_var.op {
-		case "+", "-", "=":
+		case "+", "-", "=", ">", "<", "[", "]":
 			op = expr_var.op
 		
-		case "\\in":
-			op = "&isin;"
+		case "\\in": op = "&isin;"
+		case "\\ne": op = "&ne;"
 		
 		case:
 			fmt.panicf("Operator not supported \"%s\"", expr_var.op)
@@ -317,6 +317,33 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		strings.write_string(builder, "<mo>")
 		strings.write_string(builder, op)
 		strings.write_string(builder, "</mo>")
+	
+	case ^Operator_Frac_Expr:
+		strings.write_string(builder, "<mfrac>")
+		strings.write_string(builder, "<mrow>")
+
+		for expr in expr_var.top_exprs {
+        	build_expr(builder, expr)
+		}
+
+		strings.write_string(builder, "</mrow>")
+		strings.write_string(builder, "<mrow>")
+		
+		for expr in expr_var.bottom_exprs {
+        	build_expr(builder, expr)
+		}
+
+		strings.write_string(builder, "</mrow>")
+		strings.write_string(builder, "</mfrac>")
+	
+	case ^Operator_Sqrt_Expr:
+		strings.write_string(builder, "<msqrt>")
+
+		for expr in expr_var.sqrt_exprs {
+        	build_expr(builder, expr)
+		}
+
+		strings.write_string(builder, "</msqrt>")
 
 	case ^Row_Expr:
 		strings.write_string(builder, "<mrow>")

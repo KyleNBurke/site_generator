@@ -17,8 +17,12 @@ Token_Kind :: enum {
 	Carrot,
 	Underscore,
 	Operator,
+	Operator_Frac,
+	Operator_Sqrt,
 	Open_Curly_Brace,
 	Close_Curly_Brace,
+	Open_Bracket,
+	Close_Bracket,
 }
 
 parse_token :: proc(text: string, pos: int) -> Token {
@@ -53,7 +57,8 @@ parse_token :: proc(text: string, pos: int) -> Token {
 			token.kind = .Dollar
 		}
 	
-	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')', '[', ']', '|', '\'': // #todo: single qoute doesn't look as good
+	// #todo: Need to figure out the brackets
+	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')', '|', '\'': // #todo: single qoute doesn't look as good
 		pos += 1
 		token.kind = .Identifier
 		// token.kind = parse_letter(content, &index)
@@ -71,7 +76,7 @@ parse_token :: proc(text: string, pos: int) -> Token {
 		pos += 1
 		token.kind = .Underscore
 	
-	case '+', '-', '=':
+	case '+', '-', '=', '<', '>':
 		pos += 1
 		token.kind = .Operator
 	
@@ -91,13 +96,20 @@ parse_token :: proc(text: string, pos: int) -> Token {
 		pos += 1
 		token.kind = .Close_Curly_Brace
 	
+	case '[':
+		pos += 1
+		token.kind = .Open_Bracket
+	
+	case ']':
+		pos += 1
+		token.kind = .Close_Bracket
+	
 	case '\\':
 		pos += 1
-		parse_backslash(text, &pos)
-		token.kind = .Operator
+		token.kind = parse_backslash(text, &pos)
 
 	case:
-		fmt.panicf("Unsupportd character '%r'", c)
+		fmt.panicf("Unsupportd character '%r' at position %v", c, pos)
 	}
 
 	token.end = pos
@@ -130,7 +142,7 @@ parse_number :: proc(text: string, pos: ^int) {
 	}
 }
 
-parse_backslash :: proc(text: string, pos: ^int) {
+parse_backslash :: proc(text: string, pos: ^int) -> Token_Kind {
 	start := pos^
 	
 	for {
@@ -138,4 +150,12 @@ parse_backslash :: proc(text: string, pos: ^int) {
 		if c < 'a' || c > 'z' do break
 		pos^ += 1
 	}
+
+	str := text[start : pos^]
+	switch str {
+	case "frac": return .Operator_Frac
+	case "sqrt": return .Operator_Sqrt
+	}
+
+	return .Operator
 }

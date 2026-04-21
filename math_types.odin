@@ -14,6 +14,8 @@ Expr :: struct {
         ^Superscript_Expr,
         ^Subscript_Expr,
 		^Operator_Expr,
+		^Operator_Frac_Expr,
+		^Operator_Sqrt_Expr,
 		^Row_Expr,
     }
 }
@@ -49,6 +51,17 @@ Operator_Expr :: struct {
 	using expr: Expr,
 	op: string,
 	right_space: bool,
+}
+
+Operator_Frac_Expr :: struct {
+	using expr: Expr,
+	top_exprs: []^Expr,
+	bottom_exprs: []^Expr,
+}
+
+Operator_Sqrt_Expr :: struct {
+	using expr: Expr,
+	sqrt_exprs: []^Expr,
 }
 
 Row_Expr :: struct {
