@@ -20,40 +20,58 @@ parse_math_expr :: proc(text: string, pos: ^int, single_dollar: bool) -> []^Expr
 parse_exprs :: proc(text: string, pos: ^int) -> []^Expr {
 	exprs: [dynamic]^Expr
 	
-	loop: for {
-		expr := parse_terminal_expr(text, pos)
+	for {
+		expr := parse_expr(text, pos)
 		if expr == nil do break
-
-		token := parse_token(text, pos^)
-		
-		#partial switch token.kind {
-		case .Dollar, .Double_Dollar:
-			append(&exprs, expr)
-			break loop
-
-		case .Carrot:
-			pos^ = token.end
-
-			superscript_expr := make_expr(Superscript_Expr)
-			superscript_expr.base_expr = expr
-			superscript_expr.super_expr = parse_terminal_expr(text, pos)
-
-			expr = superscript_expr
-		
-		case .Underscore:
-			pos^ = token.end
-
-			subscript_expr := make_expr(Subscript_Expr)
-			subscript_expr.base_expr = expr
-			subscript_expr.sub_expr = parse_terminal_expr(text, pos)
-
-			expr = subscript_expr
-		}
 
 		append(&exprs, expr)
 	}
 
 	return exprs[:]
+}
+
+parse_expr :: proc(text: string, pos: ^int) -> ^Expr {
+	expr := parse_terminal_expr(text, pos)
+
+	token := parse_token(text, pos^)
+		
+	#partial switch token.kind {
+	case .Carrot:
+		pos^ = token.end
+
+		superscript_expr := make_expr(Superscript_Expr)
+		superscript_expr.base_expr = expr
+		superscript_expr.super_expr = parse_terminal_expr(text, pos)
+
+		expr = superscript_expr
+	
+	case .Underscore:
+		pos^ = token.end
+
+		sub_expr := parse_terminal_expr(text, pos)
+
+		token = parse_token(text, pos^)
+		if token.kind == .Carrot {
+			pos^ = token.end
+
+			super_expr := parse_terminal_expr(text, pos)
+
+			sub_sup_expr := make_expr(Sub_Sup_Expr)
+			sub_sup_expr.base_expr = expr
+			sub_sup_expr.sub_expr = sub_expr
+			sub_sup_expr.super_expr = super_expr
+
+			expr = sub_sup_expr
+		} else {
+			subscript_expr := make_expr(Subscript_Expr)
+			subscript_expr.base_expr = expr
+			subscript_expr.sub_expr = sub_expr
+
+			expr = subscript_expr
+		}
+	}
+
+	return expr
 }
 
 parse_terminal_expr :: proc(text: string, pos: ^int) -> ^Expr {

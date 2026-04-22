@@ -300,6 +300,13 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
         build_expr(builder, expr_var.sub_expr)
         strings.write_string(builder, "</msub>")
 	
+	case ^Sub_Sup_Expr:
+		strings.write_string(builder, "<msubsup>")
+        build_expr(builder, expr_var.base_expr)
+        build_expr(builder, expr_var.sub_expr)
+		build_expr(builder, expr_var.super_expr)
+        strings.write_string(builder, "</msubsup>")
+	
 	case ^Operator_Expr:
 		op: string
 
@@ -309,6 +316,7 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		
 		case "\\in": op = "&isin;"
 		case "\\ne": op = "&ne;"
+		case "\\pm": op = "&plusmn;"
 		case "\\left[": op = "["
 		case "\\right]": op = "]"
 		case "\\left(": op = "("

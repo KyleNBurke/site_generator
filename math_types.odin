@@ -13,6 +13,7 @@ Expr :: struct {
 		^Number_Expr,
         ^Superscript_Expr,
         ^Subscript_Expr,
+		^Sub_Sup_Expr,
 		^Operator_Expr,
 		^Operator_Frac_Expr,
 		^Operator_Sqrt_Expr,
@@ -45,6 +46,13 @@ Subscript_Expr :: struct {
     using expr: Expr,
     base_expr: ^Expr,
     sub_expr: ^Expr,
+}
+
+Sub_Sup_Expr :: struct {
+	using expr: Expr,
+	base_expr: ^Expr,
+    sub_expr: ^Expr,
+	super_expr: ^Expr,
 }
 
 Operator_Expr :: struct {
