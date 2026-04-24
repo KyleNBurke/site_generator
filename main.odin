@@ -224,7 +224,7 @@ handle_math_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 		single_dollar = false
 	}
 	
-	exprs := parse_math_expr(text, pos, single_dollar)
+	expr := parse_math_expr(text, pos, single_dollar)
     
 	if single_dollar {
     	strings.write_string(builder, "<math>")
@@ -232,9 +232,7 @@ handle_math_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 		strings.write_string(builder, "<math display=\"block\">")
 	}
 
-    for expr in exprs {
-    	build_expr(builder, expr)
-	}
+	build_expr(builder, expr)
 
     strings.write_string(builder, "</math>")
 }
@@ -267,6 +265,11 @@ build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u
 
 build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
     switch expr_var in expr.variant {
+	case ^Expr_List:
+		for expr in expr_var.exprs {
+			build_expr(builder, expr)
+		}
+
     case ^Ident_Expr:
         strings.write_string(builder, "<mi>")
         strings.write_string(builder, expr_var.str)
@@ -335,37 +338,45 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 	
 	case ^Operator_Frac_Expr:
 		strings.write_string(builder, "<mfrac>")
+
 		strings.write_string(builder, "<mrow>")
-
-		for expr in expr_var.top_exprs {
-        	build_expr(builder, expr)
-		}
-
+		build_expr(builder, expr_var.top_expr)
 		strings.write_string(builder, "</mrow>")
+
 		strings.write_string(builder, "<mrow>")
-		
-		for expr in expr_var.bottom_exprs {
-        	build_expr(builder, expr)
-		}
-
+		build_expr(builder, expr_var.bottom_expr)
 		strings.write_string(builder, "</mrow>")
+
 		strings.write_string(builder, "</mfrac>")
 	
 	case ^Operator_Sqrt_Expr:
 		strings.write_string(builder, "<msqrt>")
-
-		for expr in expr_var.sqrt_exprs {
-        	build_expr(builder, expr)
-		}
-
+		build_expr(builder, expr_var.sqrt_expr)
 		strings.write_string(builder, "</msqrt>")
 
 	case ^Row_Expr:
-		strings.write_string(builder, "<mrow>")
-		for expr in expr_var.exprs {
-        	build_expr(builder, expr)
+		unimplemented()
+		// strings.write_string(builder, "<mrow>")
+		// for expr in expr_var.exprs {
+        // 	build_expr(builder, expr)
+		// }
+        // strings.write_string(builder, "</mrow>")
+	
+	case ^Table_Expr:
+		strings.write_string(builder, "<mtable>")
+
+		for row_expr in expr_var.rows {
+			strings.write_string(builder, "<mtr>")
+			strings.write_string(builder, "<mtd>")
+			build_expr(builder, row_expr)
+			strings.write_string(builder, "</mtd>")
+			strings.write_string(builder, "</mtr>")
 		}
-        strings.write_string(builder, "</mrow>")
+
+		strings.write_string(builder, "</mtable>")
+	
+	// case ^Aligned_Exprs:
+	// 	panic("")
     }
 }
 

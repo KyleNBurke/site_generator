@@ -19,10 +19,14 @@ Token_Kind :: enum {
 	Operator,
 	Operator_Frac,
 	Operator_Sqrt,
+	Begin_Align,
+	End_Align,
 	Open_Curly_Brace,
 	Close_Curly_Brace,
 	Open_Bracket,
 	Close_Bracket,
+	Ampersand,
+	Double_Backslash,
 }
 
 parse_token :: proc(text: string, pos: int) -> Token {
@@ -30,14 +34,14 @@ parse_token :: proc(text: string, pos: int) -> Token {
 	
 	// Skip preceding whitespace
 	for {
-		// #todo: Use get_char()?
-		if pos == len(text) {
+		c, c_size := get_char(text, pos)
+		
+		if c == 0 {
 			return Token { pos, 0, .File_End }
 		}
 
-		c := text[pos]
-		if c != ' ' do break
-		pos += 1
+		if c != ' ' && c != '\t' && c != '\n' do break
+		pos += c_size
 	}
 
 	c := text[pos]
@@ -106,6 +110,10 @@ parse_token :: proc(text: string, pos: int) -> Token {
 	case '\\':
 		pos += 1
 		token.kind = parse_backslash(text, &pos)
+	
+	case '&':
+		pos += 1
+		token.kind = .Ampersand
 
 	case:
 		fmt.panicf("Unsupportd character '%r' at position %v", c, pos)
@@ -142,6 +150,11 @@ parse_number :: proc(text: string, pos: ^int) {
 }
 
 parse_backslash :: proc(text: string, pos: ^int) -> Token_Kind {
+	if text[pos^] == '\\' {
+		pos^ += 1
+		return .Double_Backslash
+	}
+
 	start := pos^
 	
 	for {
@@ -165,6 +178,46 @@ parse_backslash :: proc(text: string, pos: ^int) -> Token_Kind {
 		if c == ']' || c == ')' {
 			pos^ += 1
 		}
+	case "begin":
+		// #todo: Copy paste, turn into function
+		c := text[pos^]
+		assert(c == '{')
+		pos^ += 1
+		environment_start := pos^
+
+		for {
+			c = text[pos^]
+			assert((c >= 'a' && c <= 'z') || c == '}')
+			pos^ += 1
+			if c == '}' do break
+		}
+
+		environment := text[environment_start : pos^]
+		if environment == "aligned" {
+			return .Begin_Align
+		}
+
+		panic("begin environment not supported")
+	
+	case "end":
+		c := text[pos^]
+		assert(c == '{')
+		pos^ += 1
+		environment_start := pos^
+
+		for {
+			c = text[pos^]
+			assert((c >= 'a' && c <= 'z') || c == '}')
+			pos^ += 1
+			if c == '}' do break
+		}
+
+		environment := text[environment_start : pos^]
+		if environment == "aligned" {
+			return .Begin_Align
+		}
+
+		panic("end environment not supported")
 	}
 
 	return .Operator

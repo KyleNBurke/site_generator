@@ -8,6 +8,7 @@ make_expr :: proc($T: typeid) -> ^T {
 
 Expr :: struct {
     variant: union {
+		^Expr_List,
         ^Ident_Expr,
 		^String_Expr,
 		^Number_Expr,
@@ -18,6 +19,8 @@ Expr :: struct {
 		^Operator_Frac_Expr,
 		^Operator_Sqrt_Expr,
 		^Row_Expr,
+		^Table_Expr,
+		// ^Aligned_Exprs,
     }
 }
 
@@ -63,16 +66,39 @@ Operator_Expr :: struct {
 
 Operator_Frac_Expr :: struct {
 	using expr: Expr,
-	top_exprs: []^Expr,
-	bottom_exprs: []^Expr,
+	top_expr: ^Expr,
+	bottom_expr: ^Expr,
 }
 
 Operator_Sqrt_Expr :: struct {
 	using expr: Expr,
-	sqrt_exprs: []^Expr,
+	sqrt_expr: ^Expr,
 }
 
-Row_Expr :: struct {
+// Expressions NOT inside curly braces
+Expr_List :: struct {
 	using expr: Expr,
 	exprs: []^Expr,
 }
+
+// Expressions inside curly braces, requires the <mrow> tag
+Row_Expr :: struct {
+	using expr: Expr,
+	// exprs: []^Expr,
+	expr_list: ^Expr_List
+}
+
+Table_Expr :: struct {
+	using expr: Expr,
+	rows: []^Expr,
+}
+
+// Aligned_Exprs :: struct {
+// 	using expr: Expr,
+// 	rows: []Aligned_Exprs_Row,
+// }
+
+// Aligned_Exprs_Row :: struct {
+// 	left_exprs: []^Expr,
+// 	right_exprs: []^Expr,
+// }
