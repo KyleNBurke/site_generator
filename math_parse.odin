@@ -203,9 +203,7 @@ parse_terminal_expr :: proc(text: string, pos: ^int) -> ^Expr {
 	
 	case .Operator_Frac:
 		pos^ = token.end
-		frac_expr := make_expr(Operator_Frac_Expr)
-		parse_frac_expr(text, pos, frac_expr)
-		expr = frac_expr
+		expr = parse_frac_expr(text, pos)
 	
 	case .Operator_Sqrt:
 		pos^ = token.end
@@ -214,17 +212,8 @@ parse_terminal_expr :: proc(text: string, pos: ^int) -> ^Expr {
 		expr = sqrt_expr
 	
 	case .Open_Curly_Brace:
-		unimplemented()
-		// pos^ = token.end
-
-		// row_expr := make_expr(Row_Expr)
-		// row_expr.exprs = parse_exprs(text, pos)
-
-		// token = parse_token(text, pos^)
-		// assert(token.kind == .Close_Curly_Brace)
-		// pos^ = token.end
-
-		// expr = row_expr
+		pos^ = token.end
+		expr = parse_curly_braced_expr(text, pos)
 	
 	case .Open_Bracket, .Close_Bracket:
 		pos^ = token.end
@@ -240,29 +229,32 @@ parse_terminal_expr :: proc(text: string, pos: ^int) -> ^Expr {
 	return expr
 }
 
-parse_frac_expr :: proc(text: string, pos: ^int, expr: ^Operator_Frac_Expr) {
-	// #todo: Can this be part of a generic curly brace parsing?
+parse_curly_braced_expr :: proc(text: string, pos: ^int) -> ^Curly_Braced_Expr {
+	expr := make_expr(Curly_Braced_Expr)
+	expr.expr_list = parse_expr_list(text, pos)
+
+	token := parse_token(text, pos^)
+	assert(token.kind == .Close_Curly_Brace)
+	pos^ = token.end
+
+	return expr
+}
+
+parse_frac_expr :: proc(text: string, pos: ^int) -> ^Operator_Frac_Expr {
+	expr := make_expr(Operator_Frac_Expr)
+	
 	token := parse_token(text, pos^)
 	assert(token.kind == .Open_Curly_Brace)
 	pos^ = token.end
-
-	expr.top_expr = parse_expr_list(text, pos)
-	
-	token = parse_token(text, pos^)
-	assert(token.kind == .Close_Curly_Brace)
-	pos^ = token.end
+	expr.top_expr = parse_curly_braced_expr(text, pos)
 
 	token = parse_token(text, pos^)
 	assert(token.kind == .Open_Curly_Brace)
 	pos^ = token.end
+	expr.bottom_expr = parse_curly_braced_expr(text, pos)
 
-	expr.bottom_expr = parse_expr_list(text, pos)
-	
-	token = parse_token(text, pos^)
-	assert(token.kind == .Close_Curly_Brace)
-	pos^ = token.end
+	return expr
 }
-
 
 parse_sqrt_expr :: proc(text: string, pos: ^int, expr: ^Operator_Sqrt_Expr) {
 	assert(false)

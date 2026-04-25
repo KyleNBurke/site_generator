@@ -18,7 +18,7 @@ Expr :: struct {
 		^Operator_Expr,
 		^Operator_Frac_Expr,
 		^Operator_Sqrt_Expr,
-		^Row_Expr,
+		^Curly_Braced_Expr,
 		^Table_Expr,
 		^Aligned_Table_Expr,
     }
@@ -66,8 +66,8 @@ Operator_Expr :: struct {
 
 Operator_Frac_Expr :: struct {
 	using expr: Expr,
-	top_expr: ^Expr,
-	bottom_expr: ^Expr,
+	top_expr: ^Curly_Braced_Expr,
+	bottom_expr: ^Curly_Braced_Expr,
 }
 
 Operator_Sqrt_Expr :: struct {
@@ -81,10 +81,8 @@ Expr_List :: struct {
 	exprs: [dynamic]^Expr,
 }
 
-// Expressions inside curly braces, requires the <mrow> tag #todo: Def rename this
-Row_Expr :: struct {
+Curly_Braced_Expr :: struct {
 	using expr: Expr,
-	// exprs: []^Expr,
 	expr_list: ^Expr_List
 }
 
@@ -97,13 +95,3 @@ Aligned_Table_Expr :: struct {
 	using expr: Expr,
 	rows: [dynamic][2]^Expr,
 }
-
-// Aligned_Exprs :: struct {
-// 	using expr: Expr,
-// 	rows: []Aligned_Exprs_Row,
-// }
-
-// Aligned_Exprs_Row :: struct {
-// 	left_exprs: []^Expr,
-// 	right_exprs: []^Expr,
-// }

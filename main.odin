@@ -338,15 +338,8 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 	
 	case ^Operator_Frac_Expr:
 		strings.write_string(builder, "<mfrac>")
-
-		strings.write_string(builder, "<mrow>")
 		build_expr(builder, expr_var.top_expr)
-		strings.write_string(builder, "</mrow>")
-
-		strings.write_string(builder, "<mrow>")
 		build_expr(builder, expr_var.bottom_expr)
-		strings.write_string(builder, "</mrow>")
-
 		strings.write_string(builder, "</mfrac>")
 	
 	case ^Operator_Sqrt_Expr:
@@ -354,13 +347,10 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		build_expr(builder, expr_var.sqrt_expr)
 		strings.write_string(builder, "</msqrt>")
 
-	case ^Row_Expr:
-		unimplemented()
-		// strings.write_string(builder, "<mrow>")
-		// for expr in expr_var.exprs {
-        // 	build_expr(builder, expr)
-		// }
-        // strings.write_string(builder, "</mrow>")
+	case ^Curly_Braced_Expr:
+		strings.write_string(builder, "<mrow>")
+		build_expr(builder, expr_var.expr_list)
+        strings.write_string(builder, "</mrow>")
 	
 	case ^Table_Expr:
 		strings.write_string(builder, "<mtable>")
