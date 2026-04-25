@@ -20,7 +20,7 @@ Expr :: struct {
 		^Operator_Sqrt_Expr,
 		^Row_Expr,
 		^Table_Expr,
-		// ^Aligned_Exprs,
+		^Aligned_Table_Expr,
     }
 }
 
@@ -78,10 +78,10 @@ Operator_Sqrt_Expr :: struct {
 // Expressions NOT inside curly braces
 Expr_List :: struct {
 	using expr: Expr,
-	exprs: []^Expr,
+	exprs: [dynamic]^Expr,
 }
 
-// Expressions inside curly braces, requires the <mrow> tag
+// Expressions inside curly braces, requires the <mrow> tag #todo: Def rename this
 Row_Expr :: struct {
 	using expr: Expr,
 	// exprs: []^Expr,
@@ -91,6 +91,11 @@ Row_Expr :: struct {
 Table_Expr :: struct {
 	using expr: Expr,
 	rows: []^Expr,
+}
+
+Aligned_Table_Expr :: struct {
+	using expr: Expr,
+	rows: [dynamic][2]^Expr,
 }
 
 // Aligned_Exprs :: struct {

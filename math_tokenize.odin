@@ -19,8 +19,8 @@ Token_Kind :: enum {
 	Operator,
 	Operator_Frac,
 	Operator_Sqrt,
-	Begin_Align,
-	End_Align,
+	Begin_Aligned,
+	End_Aligned,
 	Open_Curly_Brace,
 	Close_Curly_Brace,
 	Open_Bracket,
@@ -192,12 +192,12 @@ parse_backslash :: proc(text: string, pos: ^int) -> Token_Kind {
 			if c == '}' do break
 		}
 
-		environment := text[environment_start : pos^]
+		environment := text[environment_start : pos^ - 1]
 		if environment == "aligned" {
-			return .Begin_Align
+			return .Begin_Aligned
 		}
 
-		panic("begin environment not supported")
+		fmt.panicf("begin environment %v not supported", environment)
 	
 	case "end":
 		c := text[pos^]
@@ -212,12 +212,12 @@ parse_backslash :: proc(text: string, pos: ^int) -> Token_Kind {
 			if c == '}' do break
 		}
 
-		environment := text[environment_start : pos^]
+		environment := text[environment_start : pos^ - 1]
 		if environment == "aligned" {
-			return .Begin_Align
+			return .End_Aligned
 		}
 
-		panic("end environment not supported")
+		fmt.panicf("end environment %v not supported", environment)
 	}
 
 	return .Operator

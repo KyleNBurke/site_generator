@@ -3,7 +3,7 @@ package main
 import "core:fmt"
 
 parse_math_expr :: proc(text: string, pos: ^int, single_dollar: bool) -> ^Expr {
-    expr := parse_expr(text, pos)
+	expr := parse_expr_list(text, pos)
 	
 	token := parse_token(text, pos^)
 	if single_dollar {
@@ -17,6 +17,7 @@ parse_math_expr :: proc(text: string, pos: ^int, single_dollar: bool) -> ^Expr {
 	return expr
 }
 
+/*
 parse_expr :: proc(text: string, pos: ^int) -> ^Expr {
 	exprs: [dynamic][dynamic]^Expr
 	append(&exprs, [dynamic]^Expr {})
@@ -66,6 +67,20 @@ parse_expr :: proc(text: string, pos: ^int) -> ^Expr {
 	table_expr.rows = rows[:]
 
 	return table_expr
+}
+*/
+
+parse_expr_list :: proc(text: string, pos: ^int) -> ^Expr_List {
+	expr_list := make_expr(Expr_List)
+
+	for {
+		expr := parse_expr_2(text, pos)
+		if expr == nil do break
+
+		append(&expr_list.exprs, expr)
+	}
+
+	return expr_list
 }
 
 /*
@@ -217,9 +232,9 @@ parse_terminal_expr :: proc(text: string, pos: ^int) -> ^Expr {
 		ident_expr.str = text[token.start : token.end]
 		expr = ident_expr
 	
-	case .Begin_Align:
+	case .Begin_Aligned:
 		pos^ = token.end
-
+		expr = parse_aligned_table_expr(text, pos)
 	}
 
 	return expr
@@ -231,7 +246,7 @@ parse_frac_expr :: proc(text: string, pos: ^int, expr: ^Operator_Frac_Expr) {
 	assert(token.kind == .Open_Curly_Brace)
 	pos^ = token.end
 
-	expr.top_expr = parse_expr(text, pos)
+	expr.top_expr = parse_expr_list(text, pos)
 	
 	token = parse_token(text, pos^)
 	assert(token.kind == .Close_Curly_Brace)
@@ -241,7 +256,7 @@ parse_frac_expr :: proc(text: string, pos: ^int, expr: ^Operator_Frac_Expr) {
 	assert(token.kind == .Open_Curly_Brace)
 	pos^ = token.end
 
-	expr.bottom_expr = parse_expr(text, pos)
+	expr.bottom_expr = parse_expr_list(text, pos)
 	
 	token = parse_token(text, pos^)
 	assert(token.kind == .Close_Curly_Brace)
@@ -250,6 +265,8 @@ parse_frac_expr :: proc(text: string, pos: ^int, expr: ^Operator_Frac_Expr) {
 
 
 parse_sqrt_expr :: proc(text: string, pos: ^int, expr: ^Operator_Sqrt_Expr) {
+	assert(false)
+	
 	token := parse_token(text, pos^)
 	if token.kind == .Open_Bracket {
 		pos^ = token.end
@@ -263,13 +280,38 @@ parse_sqrt_expr :: proc(text: string, pos: ^int, expr: ^Operator_Sqrt_Expr) {
 		pos^ = token.end
 	}
 	
-	token = parse_token(text, pos^)
-	assert(token.kind == .Open_Curly_Brace)
-	pos^ = token.end
+	// token = parse_token(text, pos^)
+	// assert(token.kind == .Open_Curly_Brace)
+	// pos^ = token.end
 
-	expr.sqrt_expr = parse_expr(text, pos)
+	// expr.sqrt_expr = parse_expr(text, pos)
 
-	token = parse_token(text, pos^)
-	assert(token.kind == .Close_Curly_Brace)
-	pos^ = token.end
+	// token = parse_token(text, pos^)
+	// assert(token.kind == .Close_Curly_Brace)
+	// pos^ = token.end
+}
+
+parse_aligned_table_expr :: proc(text: string, pos: ^int) -> ^Aligned_Table_Expr {
+	expr := make_expr(Aligned_Table_Expr)
+	
+	for {		
+		// Add a new row
+		append(&expr.rows, [2]^Expr {})
+		last_row := &expr.rows[len(expr.rows) - 1]
+		
+		last_row[0] = parse_expr_list(text, pos)
+		token := parse_token(text, pos^)
+		assert(token.kind == .Ampersand)
+		pos^ = token.end
+
+		last_row[1] = parse_expr_list(text, pos)
+		token = parse_token(text, pos^)
+		pos^ = token.end
+		if token.kind == .End_Aligned {
+			break
+		}
+		assert(token.kind == .Double_Backslash)
+	}
+
+	return expr
 }

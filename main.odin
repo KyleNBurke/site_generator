@@ -227,9 +227,9 @@ handle_math_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 	expr := parse_math_expr(text, pos, single_dollar)
     
 	if single_dollar {
-    	strings.write_string(builder, "<math>")
+    	strings.write_string(builder, "<math>\n")
 	} else {
-		strings.write_string(builder, "<math display=\"block\">")
+		strings.write_string(builder, "<math display=\"block\">\n")
 	}
 
 	build_expr(builder, expr)
@@ -374,6 +374,25 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		}
 
 		strings.write_string(builder, "</mtable>")
+	
+	case ^Aligned_Table_Expr:
+		strings.write_string(builder, "<mtable>\n")
+
+		for row_expr in expr_var.rows {
+			strings.write_string(builder, "<mtr>")
+
+			strings.write_string(builder, "<mtd>")
+			build_expr(builder, row_expr[0])
+			strings.write_string(builder, "</mtd>")
+
+			strings.write_string(builder, "<mtd>")
+			build_expr(builder, row_expr[1])
+			strings.write_string(builder, "</mtd>")
+			
+			strings.write_string(builder, "</mtr>\n")
+		}
+
+		strings.write_string(builder, "</mtable>\n")
 	
 	// case ^Aligned_Exprs:
 	// 	panic("")
