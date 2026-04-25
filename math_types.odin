@@ -17,7 +17,7 @@ Expr :: struct {
 		^Sub_Sup_Expr,
 		^Operator_Expr,
 		^Operator_Frac_Expr,
-		^Operator_Sqrt_Expr,
+		^Root_Expr,
 		^Curly_Braced_Expr,
 		^Table_Expr,
 		^Aligned_Table_Expr,
@@ -70,9 +70,10 @@ Operator_Frac_Expr :: struct {
 	bottom_expr: ^Curly_Braced_Expr,
 }
 
-Operator_Sqrt_Expr :: struct {
+Root_Expr :: struct {
 	using expr: Expr,
-	sqrt_expr: ^Expr,
+	degree: string,
+	sqrt_expr: ^Curly_Braced_Expr,
 }
 
 // Expressions NOT inside curly braces

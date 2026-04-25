@@ -1,4 +1,4 @@
 title = Generating Signed Distance Fields
 #---
 
-$\frac{1}{2}$
+$\sqrt[23]{2}$

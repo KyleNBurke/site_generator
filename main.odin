@@ -342,10 +342,19 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		build_expr(builder, expr_var.bottom_expr)
 		strings.write_string(builder, "</mfrac>")
 	
-	case ^Operator_Sqrt_Expr:
-		strings.write_string(builder, "<msqrt>")
-		build_expr(builder, expr_var.sqrt_expr)
-		strings.write_string(builder, "</msqrt>")
+	case ^Root_Expr:
+		if expr_var.degree == "" {
+			strings.write_string(builder, "<msqrt>")
+			build_expr(builder, expr_var.sqrt_expr)
+			strings.write_string(builder, "</msqrt>")
+		} else {
+			strings.write_string(builder, "<mroot>")
+			build_expr(builder, expr_var.sqrt_expr)
+			strings.write_string(builder, "<mi>")
+			strings.write_string(builder, expr_var.degree)
+			strings.write_string(builder, "</mi>")
+			strings.write_string(builder, "</mroot>")
+		}
 
 	case ^Curly_Braced_Expr:
 		strings.write_string(builder, "<mrow>")

@@ -207,9 +207,7 @@ parse_terminal_expr :: proc(text: string, pos: ^int) -> ^Expr {
 	
 	case .Operator_Sqrt:
 		pos^ = token.end
-		sqrt_expr := make_expr(Operator_Sqrt_Expr)
-		parse_sqrt_expr(text, pos, sqrt_expr)
-		expr = sqrt_expr
+		expr = parse_root_expr(text, pos)
 	
 	case .Open_Curly_Brace:
 		pos^ = token.end
@@ -256,8 +254,8 @@ parse_frac_expr :: proc(text: string, pos: ^int) -> ^Operator_Frac_Expr {
 	return expr
 }
 
-parse_sqrt_expr :: proc(text: string, pos: ^int, expr: ^Operator_Sqrt_Expr) {
-	assert(false)
+parse_root_expr :: proc(text: string, pos: ^int) -> ^Root_Expr {
+	expr := make_expr(Root_Expr)
 	
 	token := parse_token(text, pos^)
 	if token.kind == .Open_Bracket {
@@ -267,20 +265,20 @@ parse_sqrt_expr :: proc(text: string, pos: ^int, expr: ^Operator_Sqrt_Expr) {
 		assert(token.kind == .Number)
 		pos^ = token.end
 
+		expr.degree = text[token.start : token.end]
+
 		token = parse_token(text, pos^)
 		assert(token.kind == .Close_Bracket)
 		pos^ = token.end
 	}
-	
-	// token = parse_token(text, pos^)
-	// assert(token.kind == .Open_Curly_Brace)
-	// pos^ = token.end
 
-	// expr.sqrt_expr = parse_expr(text, pos)
+	token = parse_token(text, pos^)
+	assert(token.kind == .Open_Curly_Brace)
+	pos^ = token.end
 
-	// token = parse_token(text, pos^)
-	// assert(token.kind == .Close_Curly_Brace)
-	// pos^ = token.end
+	expr.sqrt_expr = parse_curly_braced_expr(text, pos)
+
+	return expr
 }
 
 parse_aligned_table_expr :: proc(text: string, pos: ^int) -> ^Aligned_Table_Expr {
