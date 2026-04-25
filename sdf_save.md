@@ -599,7 +599,7 @@ There's one part we need to be careful of, diving by zero. When the denominator 
 
 $$
 \begin{aligned}
-y &= y_1 + (1-t)^2(y_0-y_1) + t^2(y_2-y_1) \cr
+y &= y_1 + (1-t)^2(y_0-y_1) + t^2(y_2-y_1) \\
 &= 2ct + y_1 - c
 \end{aligned}
 $$

@@ -250,6 +250,9 @@ build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u
 		
 		case '\n':
             break loop
+		
+		case '`':
+			handle_inline_code_char(builder, text, pos)
         
         case '$':
 			handle_math_char(builder, text, pos)
@@ -261,6 +264,25 @@ build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u
 
     strings.write_string(builder, "</p>")
     strings.write_rune(builder, '\n')
+}
+
+handle_inline_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+	strings.write_string(builder, "<code style=\"background-color: lightgrey;\">")
+
+	loop: for {
+		c, c_size := get_char(text, pos^)
+		pos^ += c_size
+		
+		switch c {
+		case 0:    panic("Didn't close out the inline code")
+		case '`':  break loop
+		case '\n': continue
+		}
+		
+		strings.write_byte(builder, c)
+	}
+
+	strings.write_string(builder, "</code>")
 }
 
 build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
