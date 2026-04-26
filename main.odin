@@ -152,6 +152,7 @@ main :: proc() {
 						pos += c_size
 						if c == 0 || c == '\n' do break
 						
+						// #todo: Need a generic handle character proc so I can handle code characters in here
 						if c == '$' {
 							handle_math_char(&builder, file_string, &pos)
 						} else {
@@ -163,6 +164,10 @@ main :: proc() {
 				}
 
 				strings.write_string(&builder, "</ul>")
+			
+			case '`':
+				pos += 1
+				handle_code_char(&builder, file_string, &pos)
 			
 			case '$':
 				pos += 1
@@ -215,6 +220,52 @@ main :: proc() {
     os.copy_file("site/style.css", "style.css")
 }
 
+handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+	if pos^ + 2 <= len(text) && text[pos^ : pos^ + 2] == "``" {
+		pos^ += 2
+		strings.write_string(builder, "\n<pre>\n<code>\n")
+
+		loop_1: for {
+			c, c_size := get_char(text, pos^)
+			pos^ += c_size
+
+			switch c {
+			case 0:
+				panic("Didn't close out the code block")
+
+			case '`':
+				if pos^ + 2 <= len(text) && text[pos^ : pos^ + 2] == "``" {
+					pos^ += 2
+					break loop_1
+				}
+			}
+
+			strings.write_byte(builder, c)
+		}
+
+		strings.write_string(builder, "\n</code>\n</pre>\n")
+	} else {
+		strings.write_string(builder, "<code style=\"background-color: lightgrey;\">")
+
+		loop_2: for {
+			c, c_size := get_char(text, pos^)
+			pos^ += c_size
+			
+			switch c {
+			case 0:
+				panic("Didn't close out the inline code")
+			
+			case '`':
+				break loop_2
+			}
+			
+			strings.write_byte(builder, c)
+		}
+
+		strings.write_string(builder, "</code>")
+	}
+}
+
 handle_math_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 	single_dollar := true
 			
@@ -252,7 +303,7 @@ build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u
             break loop
 		
 		case '`':
-			handle_inline_code_char(builder, text, pos)
+			handle_code_char(builder, text, pos)
         
         case '$':
 			handle_math_char(builder, text, pos)
@@ -264,25 +315,6 @@ build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u
 
     strings.write_string(builder, "</p>")
     strings.write_rune(builder, '\n')
-}
-
-handle_inline_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
-	strings.write_string(builder, "<code style=\"background-color: lightgrey;\">")
-
-	loop: for {
-		c, c_size := get_char(text, pos^)
-		pos^ += c_size
-		
-		switch c {
-		case 0:    panic("Didn't close out the inline code")
-		case '`':  break loop
-		case '\n': continue
-		}
-		
-		strings.write_byte(builder, c)
-	}
-
-	strings.write_string(builder, "</code>")
 }
 
 build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
