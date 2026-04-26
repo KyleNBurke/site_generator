@@ -1,18 +1,33 @@
 body {
-  width: 90%;
-  max-width: 80rem;
-  margin: 0 auto;
+	width: 90%;
+	max-width: 70rem;
+	margin: 0 auto;
+	font-family: Georgia;
+	font-size: 1.2rem;
+	background-color: #1e1e1e;
+	color: #e5e5e5;
 }
 
 header {
-  margin-bottom: 2rem;
+	margin-bottom: 2rem;
 }
 
 .title {
-  color: blue;
+	text-decoration: underline;
+}
+
+a {
+	text-decoration: none;
+	color: #7fc1fb;
+}
+
+a:hover {
+	text-decoration: underline;
 }
 
 pre {
-  background-color: lightgrey;
-  padding: 0.5rem;
+	font-size: 1.05rem;
+	background-color: #3a3a3a;
+	padding: 0.5rem;
+	tab-size: 4;
 }

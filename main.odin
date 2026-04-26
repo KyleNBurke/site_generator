@@ -220,10 +220,54 @@ main :: proc() {
     os.copy_file("site/style.css", "style.css")
 }
 
+maybe_parse_link :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
+	temp_pos := pos^
+	text_start := temp_pos
+	
+	// Look for ']'
+	for {
+		c, _ := get_char(text, temp_pos)
+		temp_pos += 1
+		if c == '\n' do return false
+		if c == ']' do break
+	}
+
+	text_end := temp_pos - 1
+
+	c, _ := get_char(text, temp_pos)
+	if c != '(' do return false
+	temp_pos += 1
+
+	link_start := temp_pos
+
+	// Look for ')'
+	for {
+		c, _ := get_char(text, temp_pos)
+		temp_pos += 1
+		if c == '\n' do return false
+		if c == ')' do break
+	}
+
+	link_end := temp_pos - 1
+	pos^ = temp_pos
+
+	link_text := text[text_start : text_end]
+	link      := text[link_start : link_end]
+
+	html_start := fmt.tprintf("<a href=\"%s\">", link)
+	strings.write_string(builder, html_start)
+	strings.write_string(builder, link_text)
+	strings.write_string(builder, "</a>")
+
+	return true
+}
+
 handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 	if pos^ + 2 <= len(text) && text[pos^ : pos^ + 2] == "``" {
 		pos^ += 2
-		strings.write_string(builder, "\n<pre>\n<code>\n")
+		strings.write_string(builder, "\n<pre>\n<code>")
+
+		// #todo: parse the language
 
 		loop_1: for {
 			c, c_size := get_char(text, pos^)
@@ -301,6 +345,13 @@ build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u
 		
 		case '\n':
             break loop
+		
+		case '[':
+			parsed_link := maybe_parse_link(builder, text, pos)
+			
+			if !parsed_link {
+				strings.write_byte(builder, c)
+			}
 		
 		case '`':
 			handle_code_char(builder, text, pos)
