@@ -262,6 +262,51 @@ maybe_parse_link :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> 
 	return true
 }
 
+maybe_parse_image :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
+	temp_pos := pos^
+
+	c, _ := get_char(text, temp_pos)
+	if c != '[' do return false
+	temp_pos += 1
+	
+	text_start := temp_pos
+	
+	// Look for ']'
+	for {
+		c, _ := get_char(text, temp_pos)
+		temp_pos += 1
+		if c == '\n' do return false
+		if c == ']' do break
+	}
+
+	text_end := temp_pos - 1
+
+	c, _ = get_char(text, temp_pos)
+	if c != '(' do return false
+	temp_pos += 1
+
+	path_start := temp_pos
+
+	// Look for ')'
+	for {
+		c, _ := get_char(text, temp_pos)
+		temp_pos += 1
+		if c == '\n' do return false
+		if c == ')' do break
+	}
+
+	path_end := temp_pos - 1
+	pos^ = temp_pos
+
+	alt_text := text[text_start : text_end]
+	path     := text[path_start : path_end]
+
+	html := fmt.tprintf("<img src=\"%s\" alt=\"%s\" />", path, alt_text)
+	strings.write_string(builder, html)
+
+	return true
+}
+
 handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 	if pos^ + 2 <= len(text) && text[pos^ : pos^ + 2] == "``" {
 		pos^ += 2
@@ -347,9 +392,16 @@ build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u
             break loop
 		
 		case '[':
-			parsed_link := maybe_parse_link(builder, text, pos)
+			parsed := maybe_parse_link(builder, text, pos)
 			
-			if !parsed_link {
+			if !parsed {
+				strings.write_byte(builder, c)
+			}
+
+		case '!':
+			parsed := maybe_parse_image(builder, text, pos)
+			
+			if !parsed {
 				strings.write_byte(builder, c)
 			}
 		
