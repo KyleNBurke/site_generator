@@ -289,7 +289,7 @@ handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 
 		strings.write_string(builder, "\n</code>\n</pre>\n")
 	} else {
-		strings.write_string(builder, "<code style=\"background-color: lightgrey;\">")
+		strings.write_string(builder, "<code class=\"inline_code\">")
 
 		loop_2: for {
 			c, c_size := get_char(text, pos^)

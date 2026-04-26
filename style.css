@@ -31,3 +31,10 @@ pre {
 	padding: 0.5rem;
 	tab-size: 4;
 }
+
+.inline_code {
+	font-size: 1.05rem;
+	background-color: #3a3a3a;
+	padding-left: 0.2rem;
+	padding-right: 0.2rem;
+}
