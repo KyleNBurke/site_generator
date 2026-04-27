@@ -47,13 +47,48 @@ main :: proc() {
     articles: [dynamic]Article
 
     for file_info in file_infos {
-        if file_info.type != .Regular do continue
+		md_file_path: string
 
-        extension := file_info.name[len(file_info.name) - 3:]
-        if extension != ".md" do continue
+		#partial switch file_info.type {
+		case .Directory:
+			// Open the directory
+			dir_file_infos, error := os.read_directory_by_path(file_info.fullpath, 0, context.allocator)
+			assert(error == nil)
 
-        file_text, read_error := os.read_entire_file(file_info.fullpath, context.allocator)
-        fmt.assertf(read_error == nil, "Failed to read page file %v\nError: %v", file_info.fullpath, read_error)
+			// Look for an .md file
+			for dir_file_info in dir_file_infos {
+				extension := dir_file_info.name[len(dir_file_info.name) - 3:]
+				if extension == ".md" {
+					md_file_path = dir_file_info.fullpath
+					break
+				}
+			}
+
+			fmt.assertf(md_file_path != "", "Missing markdown file in directory %s", file_info.fullpath)
+
+			// Convert back slashes to forward slashes
+			md_file_path, _ = strings.replace_all(md_file_path, "\\", "/")
+
+			// Create the article directory
+			// #todo: I mean, we should probably just use the file path package to use backslashes on windows machines
+			error = os.make_directory(fmt.tprintf("site/article/%s", file_info.name))
+			assert(error == nil || error == .Exist)
+
+		case .Regular:
+			extension := file_info.name[len(file_info.name) - 3:]
+			fmt.assertf(extension == ".md", "File %s must be a markdown file", file_info.fullpath)
+
+			// Convert back slashes to forward slashes
+			md_file_path, _ = strings.replace_all(file_info.fullpath, "\\", "/")
+
+		case:
+			fmt.panicf("File %s is an unsupported type: %s", file_info.fullpath, file_info.type)
+		}
+		
+		fmt.printfln("Generating article from %s", md_file_path)
+
+        file_text, read_error := os.read_entire_file(md_file_path, context.allocator)
+        fmt.assertf(read_error == nil, "Failed to read page file %v\nError: %v", md_file_path, read_error)
 		file_string := transmute(string) file_text
 
 		sep_index := strings.index(file_string, METADATA_SEPARATOR)
@@ -165,6 +200,14 @@ main :: proc() {
 
 				strings.write_string(&builder, "</ul>")
 			
+			case '!':
+				parsed := maybe_parse_image(&builder, file_string, &pos)
+			
+				if !parsed {
+					// #todo: Really need to clean this code up
+					build_paragraph(&builder, file_string, &pos, c)
+				}
+			
 			case '`':
 				pos += 1
 				handle_code_char(&builder, file_string, &pos)
@@ -180,20 +223,30 @@ main :: proc() {
 
         article_html := strings.to_string(builder)
 
-        file_stem := file_info.name[:len(file_info.name) - 3]
-        file_name := fmt.tprintf("%s.html", file_stem)
-        file_path := fmt.tprintf("site/article/%s", file_name)
+		md_file_path_without_extension := md_file_path[len(pages_dir) + 1 : len(md_file_path) - 3]
+		html_file_path := fmt.tprintf("%s.html", md_file_path_without_extension)
+        html_full_file_path := fmt.tprintf("site/article/%s", html_file_path)
 
-        HOME_BUTTON :: "<a href=\"../index.html\">Home</a>"
+		depth := strings.count(html_file_path, "/")
+		home_page_file_path: string
+		style_file_path: string
 
-        article_page_html, _ := strings.replace(HTML, "#style_path#", "../style.css", 1)
-        article_page_html, _ = strings.replace(article_page_html, "#home_button#", HOME_BUTTON, 1)
+		if depth == 0 {
+			home_page_file_path = "../index.html"
+        	style_file_path = "../style.css"
+		} else {
+			home_page_file_path = "../../index.html"
+			style_file_path = "../../style.css"
+		}
+
+		article_page_html, _ := strings.replace(HTML, "#style_path#", style_file_path, 1)
+        article_page_html, _ = strings.replace(article_page_html, "#home_page_path#", home_page_file_path, 1)
         article_page_html, _ = strings.replace(article_page_html, "#content#", article_html, 1)
-        
-        write_error := os.write_entire_file(file_path, article_page_html)
-        fmt.assertf(write_error == nil, "Error: %v", write_error)
+		
+        write_error := os.write_entire_file(html_full_file_path, article_page_html)
+        fmt.assertf(write_error == nil, "Failed to write file %s, error: %v", html_full_file_path, write_error)
 
-        article.file_name = file_name
+        article.file_name = html_file_path
         append(&articles, article)
     }
 
@@ -263,7 +316,7 @@ maybe_parse_link :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> 
 }
 
 maybe_parse_image :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
-	temp_pos := pos^
+	temp_pos := pos^ + 1
 
 	c, _ := get_char(text, temp_pos)
 	if c != '[' do return false
@@ -393,13 +446,6 @@ build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u
 		
 		case '[':
 			parsed := maybe_parse_link(builder, text, pos)
-			
-			if !parsed {
-				strings.write_byte(builder, c)
-			}
-
-		case '!':
-			parsed := maybe_parse_image(builder, text, pos)
 			
 			if !parsed {
 				strings.write_byte(builder, c)
@@ -564,7 +610,7 @@ HTML ::
 <body>
     <header>
         <h1>Kyle Burke</h1>
-        #home_button#
+		<a href="#home_page_path#">Home</a>
     </header>
 #content#
 </body>
