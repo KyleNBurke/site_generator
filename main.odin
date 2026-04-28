@@ -3,6 +3,7 @@ package main
 import "core:os"
 import "core:fmt"
 import "core:strings"
+import "core:time"
 
 METADATA_SEPARATOR :: "#---"
 
@@ -39,6 +40,10 @@ main :: proc() {
     assert(error == nil)
 
 	if os.exists("site") {
+		backup_path := fmt.tprintf("site_backup_%v", time.time_to_unix(time.now()))
+		rename_error := os.rename("site", backup_path)
+		assert(rename_error == nil)
+
 		remove_error := os.remove_all("site")
 		assert(remove_error == nil)
 	}
@@ -74,25 +79,6 @@ main :: proc() {
 
 			// Convert back slashes to forward slashes
 			md_file_path, _ = strings.replace_all(md_file_path, "\\", "/")
-			// article_directory := fmt.tprintf("site/article/%s", file_info.name)
-
-			// fmt.printfln("Generating article from %s into %s", md_file_path, article_directory)
-
-			// Create the article directory
-			// #todo: Prob use the filepath package to handle backslashes and shit
-			// error = os.make_directory(article_directory)
-			// assert(error == nil || error == .Exist)
-
-			// // Copy files into the site directory
-			// for nested_file_info in dir_file_infos {
-			// 	if nested_file_info.fullpath == md_file_path {
-			// 		continue
-			// 	}
-
-			// 	fmt.assertf(nested_file_info.type == .Regular, "Cannot copy file")
-			// 	os.copy_file(article_directory, nested_file_info.fullpath)
-			// 	fmt.printfln("\tCopied %v", nested_file_info.fullpath)
-			// }
 
 		case .Regular:
 			extension := file_info.name[len(file_info.name) - 3:]
