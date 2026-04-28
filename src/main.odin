@@ -41,6 +41,7 @@ main :: proc() {
 
 	if os.exists("site") {
 		backup_path := fmt.tprintf("site_backup_%v", time.time_to_unix(time.now()))
+		fmt.printfln("Backing up site directory to %s", backup_path)
 		rename_error := os.rename("site", backup_path)
 		assert(rename_error == nil)
 
