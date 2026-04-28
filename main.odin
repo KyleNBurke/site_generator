@@ -7,8 +7,9 @@ import "core:strings"
 METADATA_SEPARATOR :: "#---"
 
 Article :: struct {
-    file_name: string,
+    rel_html_file_path: string,
     title: string,
+	html: string,
 }
 
 get_char :: proc(text: string, pos: int) -> (u8, int) {
@@ -37,8 +38,13 @@ main :: proc() {
     file_infos, error := os.read_directory_by_path(pages_dir, 0, context.allocator)
     assert(error == nil)
 
-    site_dir_error := os.make_directory("site")
-    assert(site_dir_error == nil || site_dir_error == .Exist)
+	if os.exists("site") {
+		remove_error := os.remove_all("site")
+		assert(remove_error == nil)
+	}
+
+	make_dir_error := os.make_directory("site")
+	assert(make_dir_error == nil)
 
     // Articles
     article_dir_error := os.make_directory("site/article")
@@ -52,14 +58,14 @@ main :: proc() {
 		#partial switch file_info.type {
 		case .Directory:
 			// Open the directory
-			dir_file_infos, error := os.read_directory_by_path(file_info.fullpath, 0, context.allocator)
+			nested_file_infos, error := os.read_directory_by_path(file_info.fullpath, 0, context.allocator)
 			assert(error == nil)
 
 			// Look for an .md file
-			for dir_file_info in dir_file_infos {
-				extension := dir_file_info.name[len(dir_file_info.name) - 3:]
+			for nested_file_info in nested_file_infos {
+				extension := nested_file_info.name[len(nested_file_info.name) - 3:]
 				if extension == ".md" {
-					md_file_path = dir_file_info.fullpath
+					md_file_path = nested_file_info.fullpath
 					break
 				}
 			}
@@ -68,11 +74,25 @@ main :: proc() {
 
 			// Convert back slashes to forward slashes
 			md_file_path, _ = strings.replace_all(md_file_path, "\\", "/")
+			// article_directory := fmt.tprintf("site/article/%s", file_info.name)
+
+			// fmt.printfln("Generating article from %s into %s", md_file_path, article_directory)
 
 			// Create the article directory
-			// #todo: I mean, we should probably just use the file path package to use backslashes on windows machines
-			error = os.make_directory(fmt.tprintf("site/article/%s", file_info.name))
-			assert(error == nil || error == .Exist)
+			// #todo: Prob use the filepath package to handle backslashes and shit
+			// error = os.make_directory(article_directory)
+			// assert(error == nil || error == .Exist)
+
+			// // Copy files into the site directory
+			// for nested_file_info in dir_file_infos {
+			// 	if nested_file_info.fullpath == md_file_path {
+			// 		continue
+			// 	}
+
+			// 	fmt.assertf(nested_file_info.type == .Regular, "Cannot copy file")
+			// 	os.copy_file(article_directory, nested_file_info.fullpath)
+			// 	fmt.printfln("\tCopied %v", nested_file_info.fullpath)
+			// }
 
 		case .Regular:
 			extension := file_info.name[len(file_info.name) - 3:]
@@ -84,150 +104,18 @@ main :: proc() {
 		case:
 			fmt.panicf("File %s is an unsupported type: %s", file_info.fullpath, file_info.type)
 		}
-		
-		fmt.printfln("Generating article from %s", md_file_path)
 
-        file_text, read_error := os.read_entire_file(md_file_path, context.allocator)
-        fmt.assertf(read_error == nil, "Failed to read page file %v\nError: %v", md_file_path, read_error)
-		file_string := transmute(string) file_text
-
-		sep_index := strings.index(file_string, METADATA_SEPARATOR)
-		fmt.assertf(sep_index != -1, "No metadata separator found.")
-
-		// Metadata
 		article: Article
-		metadata := file_string[:sep_index]
 
-		for {
-            line, ok := strings.split_lines_iterator(&metadata)
-            if !ok do break
-            if line == "" do continue
-            
-            result, split_error := strings.split(line, "=")
-            assert(split_error == .None)
+		rel_md_file_path_no_ext := md_file_path[len(pages_dir) + 1 : len(md_file_path) - 3]
+		article.rel_html_file_path = fmt.tprintf("article/%s.html", rel_md_file_path_no_ext)
+		
+		html_file_path := fmt.tprintf("site/article/%s.html", rel_md_file_path_no_ext)
+		fmt.printfln("Generating article %s from %s", html_file_path, md_file_path)
+		
+        build_article(md_file_path, &article)
 
-            key := strings.trim_space(result[0])
-            value := strings.trim_space(result[1])
-            
-            switch key {
-            case "title":
-                article.title = value
-			
-			case:
-				fmt.panicf("Invalid key %v", key)
-            }
-        }
-
-        // Content
-        // #TODO: Use io.Writer somehow. I think we can directly write to the file ssytem.
-        builder := strings.builder_make()
-
-        strings.write_string(&builder, "<h1 class=\"title\">")
-        strings.write_string(&builder, article.title)
-        strings.write_string(&builder, "</h1>\n")
-
-        pos := sep_index + len(METADATA_SEPARATOR)
-
-        loop: for {
-			c, c_size := get_char(file_string, pos)
-
-            switch c {
-			case 0:
-				break loop
-			
-			case '\n':
-				pos += c_size
-				continue
-
-            case '#':
-				pos += 1
-                level := 1
-
-				for {
-					c, c_size = get_char(file_string, pos)
-					if c != '#' do break
-					pos += 1
-					level += 1
-				}
-
-                heading_open := fmt.tprintf("<h%v>", level)
-                strings.write_string(&builder, heading_open)
-
-                start := pos
-
-                for {
-					c, c_size = get_char(file_string, pos)
-					if c == 0 do break
-					pos += 1
-					if c == '\n' do break
-                }
-
-                heading := strings.trim_space(file_string[start : pos])
-                strings.write_string(&builder, heading)
-
-                heading_close := fmt.tprintf("</h%v>", level)
-                strings.write_string(&builder, heading_close)
-
-                strings.write_rune(&builder, '\n')
-
-			case '-':
-				// #todo: Unordered list items actually need a following space: "- "
-				// #todo: Trim trailing and leading space: <li> hello </li>
-				strings.write_string(&builder, "<ul>")
-
-				for {
-					c, c_size = get_char(file_string, pos)
-					if c != '-' do break
-					pos += 1
-
-					strings.write_string(&builder, "<li>") // #todo
-
-					for {
-						c, c_size = get_char(file_string, pos)
-						pos += c_size
-						if c == 0 || c == '\n' do break
-						
-						// #todo: Need a generic handle character proc so I can handle code characters in here
-						if c == '$' {
-							handle_math_char(&builder, file_string, &pos)
-						} else {
-							strings.write_byte(&builder, c)
-						}
-					}
-
-					strings.write_string(&builder, "</li>")
-				}
-
-				strings.write_string(&builder, "</ul>")
-			
-			case '!':
-				parsed := maybe_parse_image(&builder, file_string, &pos)
-			
-				if !parsed {
-					// #todo: Really need to clean this code up
-					build_paragraph(&builder, file_string, &pos, c)
-				}
-			
-			case '`':
-				pos += 1
-				handle_code_char(&builder, file_string, &pos)
-			
-			case '$':
-				pos += 1
-				handle_math_char(&builder, file_string, &pos)
-
-            case:
-                build_paragraph(&builder, file_string, &pos, c)
-            }
-        }
-
-        article_html := strings.to_string(builder)
-
-		md_file_path_without_extension := md_file_path[len(pages_dir) + 1 : len(md_file_path) - 3]
-		html_file_path := fmt.tprintf("%s.html", md_file_path_without_extension)
-        html_full_file_path := fmt.tprintf("site/article/%s", html_file_path)
-
-		depth := strings.count(html_file_path, "/")
+		depth := strings.count(md_file_path, "/") - 1
 		home_page_file_path: string
 		style_file_path: string
 
@@ -237,17 +125,40 @@ main :: proc() {
 		} else {
 			home_page_file_path = "../../index.html"
 			style_file_path = "../../style.css"
+
+			assert(file_info.type == .Directory)
+
+			// Create the output directory
+			article_dir := fmt.tprintf("site/article/%s", file_info.name)
+			error = os.make_directory(article_dir)
+			assert(error == nil)
+
+			// Open the input directory
+			nested_file_infos, error := os.read_directory_by_path(file_info.fullpath, 0, context.allocator)
+			assert(error == nil)
+
+			// Copy the files
+			for nested_file_info in nested_file_infos {
+				extension := nested_file_info.name[len(nested_file_info.name) - 3:]
+				if extension == ".md" do continue
+
+				fmt.assertf(nested_file_info.type == .Regular, "Cannot copy file %s", nested_file_info.fullpath)
+
+				dst := fmt.tprintf("%s/%s", article_dir, nested_file_info.name)
+				error := os.copy_file(dst, nested_file_info.fullpath)
+				fmt.assertf(error == nil, "Failed to copy %s to %s, error: %v", nested_file_info.fullpath, dst, error)
+				fmt.printfln("\tCopied %s", nested_file_info.fullpath)
+			}
 		}
 
-		article_page_html, _ := strings.replace(HTML, "#style_path#", style_file_path, 1)
-        article_page_html, _ = strings.replace(article_page_html, "#home_page_path#", home_page_file_path, 1)
-        article_page_html, _ = strings.replace(article_page_html, "#content#", article_html, 1)
-		
-        write_error := os.write_entire_file(html_full_file_path, article_page_html)
-        fmt.assertf(write_error == nil, "Failed to write file %s, error: %v", html_full_file_path, write_error)
+		page_html, _ := strings.replace(HTML, "#style_path#", style_file_path, 1)
+		page_html, _ = strings.replace(page_html, "#home_page_path#", home_page_file_path, 1) // #todo: Don't show if on home page?
+		page_html, _ = strings.replace(page_html, "#content#", article.html, 1)
 
-        article.file_name = html_file_path
-        append(&articles, article)
+		write_error := os.write_entire_file(html_file_path, page_html)
+		fmt.assertf(write_error == nil, "Failed to write article %s, error: %v", html_file_path, write_error)
+
+		append(&articles, article)
     }
 
     // Home page
@@ -256,7 +167,7 @@ main :: proc() {
     strings.write_string(&articles_builder, "<ul>")
 
     for article in articles {
-        line := fmt.aprintfln("<li><a href=\"article/%s\">%s</a></li>", article.file_name, article.title)
+        line := fmt.aprintfln("<li><a href=\"%s\">%s</a></li>", article.rel_html_file_path, article.title)
         strings.write_string(&articles_builder, line)
     }
 
@@ -271,6 +182,142 @@ main :: proc() {
     assert(error == nil)
 
     os.copy_file("site/style.css", "style.css")
+}
+
+build_article :: proc(file_path: string, article: ^Article) {
+	file_text, read_error := os.read_entire_file(file_path, context.allocator)
+	fmt.assertf(read_error == nil, "Failed to read page file %v\nError: %v", file_path, read_error)
+	text := transmute(string) file_text
+
+	sep_index := strings.index(text, METADATA_SEPARATOR)
+	fmt.assertf(sep_index != -1, "No metadata separator found.")
+
+	metadata := text[:sep_index]
+
+	for {
+		line, ok := strings.split_lines_iterator(&metadata)
+		if !ok do break
+		if line == "" do continue
+		
+		result, split_error := strings.split(line, "=")
+		assert(split_error == .None)
+
+		key := strings.trim_space(result[0])
+		value := strings.trim_space(result[1])
+		
+		switch key {
+		case "title":
+			article.title = value
+		
+		case:
+			fmt.panicf("Invalid key %v", key)
+		}
+	}
+
+	// Content
+	// #TODO: Use io.Writer somehow. I think we can directly write to the file ssytem.
+	builder := strings.builder_make()
+
+	strings.write_string(&builder, "<h1 class=\"title\">")
+	strings.write_string(&builder, article.title)
+	strings.write_string(&builder, "</h1>\n")
+
+	pos := sep_index + len(METADATA_SEPARATOR)
+
+	loop: for {
+		c, c_size := get_char(text, pos)
+
+		switch c {
+		case 0:
+			break loop
+		
+		case '\n':
+			pos += c_size
+			continue
+
+		case '#':
+			pos += 1
+			level := 1
+
+			for {
+				c, c_size = get_char(text, pos)
+				if c != '#' do break
+				pos += 1
+				level += 1
+			}
+
+			heading_open := fmt.tprintf("<h%v>", level)
+			strings.write_string(&builder, heading_open)
+
+			start := pos
+
+			for {
+				c, c_size = get_char(text, pos)
+				if c == 0 do break
+				pos += 1
+				if c == '\n' do break
+			}
+
+			heading := strings.trim_space(text[start : pos])
+			strings.write_string(&builder, heading)
+
+			heading_close := fmt.tprintf("</h%v>", level)
+			strings.write_string(&builder, heading_close)
+
+			strings.write_rune(&builder, '\n')
+
+		case '-':
+			// #todo: Unordered list items actually need a following space: "- "
+			// #todo: Trim trailing and leading space: <li> hello </li>
+			strings.write_string(&builder, "<ul>")
+
+			for {
+				c, c_size = get_char(text, pos)
+				if c != '-' do break
+				pos += 1
+
+				strings.write_string(&builder, "<li>") // #todo
+
+				for {
+					c, c_size = get_char(text, pos)
+					pos += c_size
+					if c == 0 || c == '\n' do break
+					
+					// #todo: Need a generic handle character proc so I can handle code characters in here
+					if c == '$' {
+						handle_math_char(&builder, text, &pos)
+					} else {
+						strings.write_byte(&builder, c)
+					}
+				}
+
+				strings.write_string(&builder, "</li>")
+			}
+
+			strings.write_string(&builder, "</ul>")
+		
+		case '!':
+			parsed := maybe_parse_image(&builder, text, &pos)
+		
+			if !parsed {
+				// #todo: Really need to clean this code up
+				build_paragraph(&builder, text, &pos, c)
+			}
+		
+		case '`':
+			pos += 1
+			handle_code_char(&builder, text, &pos)
+		
+		case '$':
+			pos += 1
+			handle_math_char(&builder, text, &pos)
+
+		case:
+			build_paragraph(&builder, text, &pos, c)
+		}
+	}
+
+	article.html = strings.to_string(builder)
 }
 
 maybe_parse_link :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
