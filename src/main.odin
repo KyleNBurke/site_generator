@@ -399,11 +399,26 @@ maybe_parse_image :: proc(builder: ^strings.Builder, text: string, pos: ^int) ->
 handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 	if pos^ + 2 <= len(text) && text[pos^ : pos^ + 2] == "``" {
 		pos^ += 2
-		strings.write_string(builder, "\n<pre>\n<code>")
+		
+		// Parse over the language, until we hit a new line
+		loop_1: for {
+			c, c_size := get_char(text, pos^)
+			pos^ += c_size
+			
+			switch c {
+			case 0:
+				panic("Didn't close out the code block")
+			
+			case '\n':
+				break loop_1
+			}
+		}
+		
+		strings.write_string(builder, "<pre><code>")
 
 		// #todo: parse the language
 
-		loop_1: for {
+		loop_2: for {
 			c, c_size := get_char(text, pos^)
 			pos^ += c_size
 
@@ -414,18 +429,18 @@ handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 			case '`':
 				if pos^ + 2 <= len(text) && text[pos^ : pos^ + 2] == "``" {
 					pos^ += 2
-					break loop_1
+					break loop_2
 				}
 			}
 
 			strings.write_byte(builder, c)
 		}
 
-		strings.write_string(builder, "\n</code>\n</pre>\n")
+		strings.write_string(builder, "</code></pre>\n")
 	} else {
 		strings.write_string(builder, "<code class=\"inline_code\">")
 
-		loop_2: for {
+		loop_3: for {
 			c, c_size := get_char(text, pos^)
 			pos^ += c_size
 			
@@ -434,7 +449,7 @@ handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 				panic("Didn't close out the inline code")
 			
 			case '`':
-				break loop_2
+				break loop_3
 			}
 			
 			strings.write_byte(builder, c)

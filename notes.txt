@@ -1,3 +1,4 @@
 Todo
 - Minus sign is too short
 - Support code blocks
+- The homepage vs article page actually move left/right
