@@ -168,7 +168,9 @@ main :: proc() {
     error = os.write_entire_file("site/index.html", home_page_text)
     assert(error == nil)
 
-    os.copy_file("site/style.css", "style.css")
+	style_css := #load("../res/style.css")
+	write_error := os.write_entire_file("site/style.css", style_css)
+	assert(write_error == nil)
 }
 
 build_article :: proc(file_path: string, article: ^Article) {
