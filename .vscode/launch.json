@@ -6,7 +6,7 @@
 			"type": "cppvsdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/build/site_generator_debug.exe",
-			"args": ["pages"],
+			"args": ["test"],
 			"cwd": "${workspaceFolder}",
 			// "console": "internalConsole",
 			"preLaunchTask": "build_windows"
@@ -16,7 +16,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/site_generator_debug",
-            "args": ["pages"],
+            "args": ["test"],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build_mac"
         }

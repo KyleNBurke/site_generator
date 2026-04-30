@@ -204,7 +204,6 @@ build_article :: proc(file_path: string, article: ^Article) {
 	}
 
 	// Content
-	// #TODO: Use io.Writer somehow. I think we can directly write to the file ssytem.
 	builder := strings.builder_make()
 
 	strings.write_string(&builder, "<h1 class=\"title\">")
@@ -401,46 +400,83 @@ handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 		pos^ += 2
 		
 		// Parse over the language, until we hit a new line
-		loop_1: for {
+		language_start := pos^
+		language_end: int
+		
+		for {
 			c, c_size := get_char(text, pos^)
-			pos^ += c_size
-			
-			switch c {
-			case 0:
-				panic("Didn't close out the code block")
-			
-			case '\n':
-				break loop_1
+			fmt.assertf(c != 0, "Didn't close out the code block")
+
+			if c == '\n' {
+				language_end = pos^
+				pos^ += c_size
+				break
 			}
+
+			pos^ += c_size
 		}
+
+		language := text[language_start : language_end]
 		
 		strings.write_string(builder, "<pre><code>")
 
-		// #todo: parse the language
+		token_loop: for {
+			start_pos := pos^
+			end_pos, token_kind := parse_rust_token(text, pos^)
+			pos^ = end_pos
+			token_str := text[start_pos : end_pos]
+			
+			switch token_kind {
+			case .End:
+				break token_loop
+			
+			case .Unknown, .Whitespace, .Open_Parenthesis:
+				strings.write_string(builder, token_str)
+			
+			case .Comment:
+				strings.write_string(builder, "<span style=\"color: rgb(106, 153, 85);\">")
+				strings.write_string(builder, token_str)
+				strings.write_string(builder, "</span>")
 
-		loop_2: for {
-			c, c_size := get_char(text, pos^)
-			pos^ += c_size
+			case .Keyword:
+				strings.write_string(builder, "<span style=\"color: rgb(197, 134, 192);\">")
+				strings.write_string(builder, token_str)
+				strings.write_string(builder, "</span>")
+			
+			case .Type:
+				strings.write_string(builder, "<span style=\"color: rgb(78, 201, 176);\">")
+				strings.write_string(builder, token_str)
+				strings.write_string(builder, "</span>")
 
-			switch c {
-			case 0:
-				panic("Didn't close out the code block")
-
-			case '`':
-				if pos^ + 2 <= len(text) && text[pos^ : pos^ + 2] == "``" {
-					pos^ += 2
-					break loop_2
+			case .Identifier:
+				_, next_token := parse_rust_token(text, pos^)
+				if next_token == .Open_Parenthesis {
+					// Function call
+					strings.write_string(builder, "<span style=\"color: rgb(220, 220, 170);\">")
+					strings.write_string(builder, token_str)
+					strings.write_string(builder, "</span>")
+				} else {
+					strings.write_string(builder, token_str)
 				}
+			
+			case .Number:
+				strings.write_string(builder, "<span style=\"color: rgb(181, 206, 168);\">")
+				strings.write_string(builder, token_str)
+				strings.write_string(builder, "</span>")
+			
+			case .Left_Angle_Bracket:
+				strings.write_string(builder, "&lt;")
+			
+			case .Right_Angle_Bracket:
+				strings.write_string(builder, "&gt;")
 			}
-
-			strings.write_byte(builder, c)
 		}
 
 		strings.write_string(builder, "</code></pre>\n")
 	} else {
 		strings.write_string(builder, "<code class=\"inline_code\">")
 
-		loop_3: for {
+		loop_2: for {
 			c, c_size := get_char(text, pos^)
 			pos^ += c_size
 			
@@ -449,7 +485,7 @@ handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 				panic("Didn't close out the inline code")
 			
 			case '`':
-				break loop_3
+				break loop_2
 			}
 			
 			strings.write_byte(builder, c)
