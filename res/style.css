@@ -12,6 +12,10 @@ body {
 	color: #e5e5e5;
 }
 
+.name_heading {
+	margin-bottom: 0.8rem;
+}
+
 header {
 	margin-bottom: 2rem;
 }

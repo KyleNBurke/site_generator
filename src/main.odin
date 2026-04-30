@@ -712,7 +712,7 @@ HTML ::
 </head>
 <body>
     <header>
-        <h1>Kyle Burke</h1>
+        <h1 class="name_heading">Kyle Burke</h1>
 		#home_button#
     </header>
 #content#
