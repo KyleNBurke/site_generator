@@ -388,9 +388,23 @@ maybe_parse_image :: proc(builder: ^strings.Builder, text: string, pos: ^int) ->
 
 	alt_text := text[text_start : text_end]
 	path     := text[path_start : path_end]
+	
+	if strings.starts_with(path, "https://www.youtube.com") {
+		sep := "/watch?v="
+		video_id_index := strings.index(path, sep)
+		assert(video_id_index != 0)
+		video_id := path[video_id_index + len(sep):]
 
-	html := fmt.tprintf("<img src=\"%s\" alt=\"%s\" />", path, alt_text)
-	strings.write_string(builder, html)
+		link := fmt.tprintf("<a href=\"%s\" target=\"_blank\">", path)
+		img  := fmt.tprintf("<img src=\"https://img.youtube.com/vi/%s/0.jpg\" alt=\"%s\">", video_id, alt_text)
+
+		strings.write_string(builder, link)
+		strings.write_string(builder, img)
+		strings.write_string(builder, "</a>")
+	} else {
+		html := fmt.tprintf("<img src=\"%s\" alt=\"%s\" />", path, alt_text)
+		strings.write_string(builder, html)
+	}
 
 	return true
 }
