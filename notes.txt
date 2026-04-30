@@ -1,4 +1,13 @@
 Todo
-- Minus sign is too short
-- Support code blocks
-- The homepage vs article page actually move left/right
+- Minus sign is too short in math
+- Color inline code blocks
+- Handle < correctly in inline code blocks
+- Footnotes would be nice
+- Ordered list items
+- Only color code blocks if it's Rust
+- Code runs off the edge horizontally
+- Layout on small screen sizes
+- YouTube video links
+- Color Vec as a type?
+- Home page - don't show the home button?
+- Home page - show a short description of the article
