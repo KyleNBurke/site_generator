@@ -138,8 +138,10 @@ main :: proc() {
 			}
 		}
 
+		home_button := fmt.tprintf("<a href=\"%s\">Home</a>", home_page_file_path)
+
 		page_html, _ := strings.replace(HTML, "#style_path#", style_file_path, 1)
-		page_html, _ = strings.replace(page_html, "#home_page_path#", home_page_file_path, 1) // #todo: Don't show if on home page?
+		page_html, _ = strings.replace(page_html, "#home_button#", home_button, 1)
 		page_html, _ = strings.replace(page_html, "#content#", article.html, 1)
 
 		write_error := os.write_entire_file(html_file_path, page_html)
@@ -711,7 +713,7 @@ HTML ::
 <body>
     <header>
         <h1>Kyle Burke</h1>
-		<a href="#home_page_path#">Home</a>
+		#home_button#
     </header>
 #content#
 </body>
