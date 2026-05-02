@@ -562,6 +562,11 @@ build_inline_or_block_code :: proc(builder: ^strings.Builder, text: string, pos:
 			strings.write_string(builder, token_str)
 			strings.write_string(builder, "</span>")
 		
+		case .Const_Value:
+			strings.write_string(builder, "<span style=\"color: rgb(79,  193, 255);\">")
+			strings.write_string(builder, token_str)
+			strings.write_string(builder, "</span>")
+		
 		case .Left_Angle_Bracket:
 			strings.write_string(builder, "&lt;")
 		
@@ -668,9 +673,10 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		op: string
 
 		switch expr_var.op {
-		case "+", "-", "=", ">", "<", "[", "]":
+		case "+", "=", ">", "<", "[", "]":
 			op = expr_var.op
 		
+		case "-":    op = "&minus;"
 		case "\\in": op = "&isin;"
 		case "\\ne": op = "&ne;"
 		case "\\pm": op = "&plusmn;"

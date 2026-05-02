@@ -1,9 +1,8 @@
 Todo
 - Need the math table to line up at the ampersand
-- Minus sign is too short in math
 - Footnotes would be nice
 - Only color code blocks if it's Rust
-- Code runs off the edge horizontally
 - Layout on small screen sizes
-- Color Vec as a type?
 - Home page - show a short description of the article
+- Left align block equations by default?
+- Ability to diff the current site with the latest backup would be nice

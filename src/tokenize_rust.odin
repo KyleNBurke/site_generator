@@ -14,6 +14,7 @@ Rust_Token_Kind :: enum {
 	Type,
 	Identifier,
 	Number,
+	Const_Value,
 	Open_Parenthesis,
 	Left_Angle_Bracket,
 	Right_Angle_Bracket,
@@ -133,8 +134,11 @@ parse_rust_letter :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
 	case "fn", "let", "for", "if", "else", "mut", "in", "as":
 		return .Keyword
 	
-	case "f64", "usize", "u8", "u16", "u32", "i8", "i16", "i32":
+	case "f64", "usize", "u8", "u16", "u32", "i8", "i16", "i32", "str", "Vec", "Option", "Some":
 		return .Type
+	
+	case "None":
+		return .Const_Value
 	}
 
 	return .Identifier
