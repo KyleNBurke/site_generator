@@ -216,144 +216,142 @@ build_article :: proc(file_path: string, article: ^Article) {
 
 	loop: for {
 		c, c_size := get_char(text, pos)
+		pos += c_size
 
 		switch c {
 		case 0:
 			break loop
 		
 		case '\n':
-			pos += c_size
 			continue
 
 		case '#':
-			pos += 1
-			level := 1
-
-			for {
-				c, c_size = get_char(text, pos)
-				if c != '#' do break
-				pos += 1
-				level += 1
-			}
-
-			heading_open := fmt.tprintf("<h%v>", level)
-			strings.write_string(&builder, heading_open)
-
-			start := pos
-
-			for {
-				c, c_size = get_char(text, pos)
-				if c == 0 do break
-				pos += 1
-				if c == '\n' do break
-			}
-
-			heading := strings.trim_space(text[start : pos])
-			strings.write_string(&builder, heading)
-
-			heading_close := fmt.tprintf("</h%v>", level)
-			strings.write_string(&builder, heading_close)
-
-			strings.write_rune(&builder, '\n')
-
+			build_heading(&builder, text, &pos)
+			continue
+		
 		case '-':
-			// #todo: Unordered list items actually need a following space: "- "
-			// #todo: Trim trailing and leading space: <li> hello </li>
-			strings.write_string(&builder, "<ul>")
+			build_unordered_list(&builder, text, &pos)
+			continue
 
-			for {
-				c, c_size = get_char(text, pos)
-				if c != '-' do break
-				pos += 1
-
-				strings.write_string(&builder, "<li>") // #todo
-
-				for {
-					c, c_size = get_char(text, pos)
-					pos += c_size
-					if c == 0 || c == '\n' do break
-					
-					// #todo: Need a generic handle character proc so I can handle code characters in here
-					if c == '$' {
-						handle_math_char(&builder, text, &pos)
-					} else {
-						strings.write_byte(&builder, c)
-					}
-				}
-
-				strings.write_string(&builder, "</li>")
-			}
-
-			strings.write_string(&builder, "</ul>")
+		// case '1':
+		// 	build_ordered_list(&builder, text, &pos)
+		// 	continue
 		
 		case '!':
-			parsed := maybe_parse_image(&builder, text, &pos)
-		
-			if !parsed {
-				// #todo: Really need to clean this code up
-				build_paragraph(&builder, text, &pos, c)
+			if maybe_build_image(&builder, text, &pos) {
+				continue
 			}
 		
 		case '`':
-			pos += 1
-			handle_code_char(&builder, text, &pos)
+			build_inline_or_block_code(&builder, text, &pos)
+			continue
 		
 		case '$':
-			pos += 1
-			handle_math_char(&builder, text, &pos)
-
-		case:
-			build_paragraph(&builder, text, &pos, c)
+			build_inline_or_block_math(&builder, text, &pos)
+			continue
 		}
+
+		build_paragraph(&builder, text, &pos, c)
 	}
 
 	article.html = strings.to_string(builder)
 }
 
-maybe_parse_link :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
-	temp_pos := pos^
-	text_start := temp_pos
-	
-	// Look for ']'
-	for {
-		c, _ := get_char(text, temp_pos)
-		temp_pos += 1
-		if c == '\n' do return false
-		if c == ']' do break
+build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u8) {
+	strings.write_string(builder, "<p>")
+	strings.write_byte(builder, c)
+
+	loop: for {
+		c, c_size := get_char(text, pos^)
+		if c == 0 || c == '\n' do break
+		pos^ += c_size
+
+		handle_paragraph_char(builder, text, pos, c)
 	}
 
-	text_end := temp_pos - 1
-
-	c, _ := get_char(text, temp_pos)
-	if c != '(' do return false
-	temp_pos += 1
-
-	link_start := temp_pos
-
-	// Look for ')'
-	for {
-		c, _ := get_char(text, temp_pos)
-		temp_pos += 1
-		if c == '\n' do return false
-		if c == ')' do break
-	}
-
-	link_end := temp_pos - 1
-	pos^ = temp_pos
-
-	link_text := text[text_start : text_end]
-	link      := text[link_start : link_end]
-
-	html_start := fmt.tprintf("<a href=\"%s\">", link)
-	strings.write_string(builder, html_start)
-	strings.write_string(builder, link_text)
-	strings.write_string(builder, "</a>")
-
-	return true
+	strings.write_string(builder, "</p>\n")
 }
 
-maybe_parse_image :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
-	temp_pos := pos^ + 1
+handle_paragraph_char :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u8) {
+	switch c {
+	case '[':
+		if maybe_build_link(builder, text, pos) {
+			return
+		}
+	
+	case '`':
+		build_inline_code(builder, text, pos)
+		return
+	
+	case '$':
+		build_inline_math(builder, text, pos)
+		return
+	}
+
+	strings.write_byte(builder, c)
+}
+
+build_heading :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+	level := 1
+
+	for {
+		c, _ := get_char(text, pos^)
+		if c != '#' do break
+		pos^ += 1
+		level += 1
+	}
+
+	open_tag := fmt.tprintf("<h%v>", level)
+	strings.write_string(builder, open_tag)
+
+	start := pos^
+
+	for {
+		c, _ := get_char(text, pos^)
+		if c == 0 do break
+		pos^ += 1
+		if c == '\n' do break
+	}
+
+	text := strings.trim_space(text[start : pos^])
+	strings.write_string(builder, text)
+
+	close_tag := fmt.tprintf("</h%v>\n", level)
+	strings.write_string(builder, close_tag)
+}
+
+build_unordered_list :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+	// #todo: Unordered list items actually need a following space: "- "
+	strings.write_string(builder, "<ul>")
+
+	for {
+		strings.write_string(builder, "<li>")
+
+		for {
+			c, c_size := get_char(text, pos^)
+			pos^ += c_size
+			if c == 0 || c == '\n' do break
+			
+			// #todo: The problem with this is we can't trim any trailing/leading whitespace: <li> hello </li>
+			handle_paragraph_char(builder, text, pos, c)
+		}
+
+		strings.write_string(builder, "</li>")
+
+		c, _ := get_char(text, pos^)
+		if c != '-' do break
+		pos^ += 1
+	}
+
+	strings.write_string(builder, "</ul>")
+}
+
+build_ordered_list :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+
+}
+
+maybe_build_image :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
+	temp_pos := pos^
 
 	c, _ := get_char(text, temp_pos)
 	if c != '[' do return false
@@ -411,171 +409,176 @@ maybe_parse_image :: proc(builder: ^strings.Builder, text: string, pos: ^int) ->
 	return true
 }
 
-handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
-	if pos^ + 2 <= len(text) && text[pos^ : pos^ + 2] == "``" {
-		pos^ += 2
-		
-		// Parse over the language, until we hit a new line
-		language_start := pos^
-		language_end: int
-		
-		for {
-			c, c_size := get_char(text, pos^)
-			fmt.assertf(c != 0, "Didn't close out the code block")
-
-			if c == '\n' {
-				language_end = pos^
-				pos^ += c_size
-				break
-			}
-
-			pos^ += c_size
-		}
-
-		language := text[language_start : language_end]
-		
-		strings.write_string(builder, "<pre><code>")
-
-		token_loop: for {
-			start_pos := pos^
-			end_pos, token_kind := parse_rust_token(text, pos^)
-			pos^ = end_pos
-			token_str := text[start_pos : end_pos]
-			
-			switch token_kind {
-			case .End:
-				break token_loop
-			
-			case .Unknown, .Whitespace, .Open_Parenthesis:
-				strings.write_string(builder, token_str)
-			
-			case .Comment:
-				strings.write_string(builder, "<span style=\"color: rgb(106, 153, 85);\">")
-				strings.write_string(builder, token_str)
-				strings.write_string(builder, "</span>")
-
-			case .Keyword:
-				strings.write_string(builder, "<span style=\"color: rgb(197, 134, 192);\">")
-				strings.write_string(builder, token_str)
-				strings.write_string(builder, "</span>")
-			
-			case .Type:
-				strings.write_string(builder, "<span style=\"color: rgb(78, 201, 176);\">")
-				strings.write_string(builder, token_str)
-				strings.write_string(builder, "</span>")
-
-			case .Identifier:
-				_, next_token := parse_rust_token(text, pos^)
-				if next_token == .Open_Parenthesis {
-					// Function call
-					strings.write_string(builder, "<span style=\"color: rgb(220, 220, 170);\">")
-					strings.write_string(builder, token_str)
-					strings.write_string(builder, "</span>")
-				} else {
-					strings.write_string(builder, token_str)
-				}
-			
-			case .Number:
-				strings.write_string(builder, "<span style=\"color: rgb(181, 206, 168);\">")
-				strings.write_string(builder, token_str)
-				strings.write_string(builder, "</span>")
-			
-			case .Left_Angle_Bracket:
-				strings.write_string(builder, "&lt;")
-			
-			case .Right_Angle_Bracket:
-				strings.write_string(builder, "&gt;")
-			}
-		}
-
-		strings.write_string(builder, "</code></pre>\n")
-	} else {
-		strings.write_string(builder, "<code class=\"inline_code\">")
-
-		loop_2: for {
-			c, c_size := get_char(text, pos^)
-			pos^ += c_size
-			
-			switch c {
-			case 0:
-				panic("Didn't close out the inline code")
-			
-			case '`':
-				break loop_2
-			
-			case '<':
-				strings.write_string(builder, "&lt;")
-			
-			case '>':
-				strings.write_string(builder, "&gt;")
-			
-			case:
-				strings.write_byte(builder, c)
-			}
-		}
-
-		strings.write_string(builder, "</code>")
-	}
-}
-
-handle_math_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
-	single_dollar := true
-			
-	next_c, _ := get_char(text, pos^)
-	if next_c == '$' {
-		pos^ += 1
-		single_dollar = false
-	}
+maybe_build_link :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
+	temp_pos := pos^
+	text_start := temp_pos
 	
-	expr := parse_math_expr(text, pos, single_dollar)
-    
-	if single_dollar {
-    	strings.write_string(builder, "<math>\n")
-	} else {
-		strings.write_string(builder, "<math display=\"block\">\n")
+	// Look for ']'
+	for {
+		c, _ := get_char(text, temp_pos)
+		temp_pos += 1
+		if c == '\n' do return false
+		if c == ']' do break
 	}
 
-	build_expr(builder, expr)
+	text_end := temp_pos - 1
 
-    strings.write_string(builder, "</math>")
+	c, _ := get_char(text, temp_pos)
+	if c != '(' do return false
+	temp_pos += 1
+
+	link_start := temp_pos
+
+	// Look for ')'
+	for {
+		c, _ := get_char(text, temp_pos)
+		temp_pos += 1
+		if c == '\n' do return false
+		if c == ')' do break
+	}
+
+	link_end := temp_pos - 1
+	pos^ = temp_pos
+
+	link_text := text[text_start : text_end]
+	link      := text[link_start : link_end]
+
+	html_start := fmt.tprintf("<a href=\"%s\">", link)
+	strings.write_string(builder, html_start)
+	strings.write_string(builder, link_text)
+	strings.write_string(builder, "</a>")
+
+	return true
 }
 
-build_paragraph :: proc(builder: ^strings.Builder, text: string, pos: ^int, c: u8) {
-    strings.write_string(builder, "<p>")
+build_inline_or_block_code :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+	if pos^ + 2 > len(text) || text[pos^ : pos^ + 2] != "``" {
+		build_inline_math(builder, text, pos)
+		return
+	}
 
-    loop: for {
+	pos^ += 2
+	
+	// Parse over the language, until we hit a new line
+	language_start := pos^
+	language_end: int
+	
+	for {
 		c, c_size := get_char(text, pos^)
-		pos^ += c_size
+		fmt.assertf(c != 0, "Didn't close out the code block")
 
-        switch c {
-        case 0:
+		if c == '\n' {
+			language_end = pos^
+			pos^ += c_size
+			break
+		}
+
+		pos^ += c_size
+	}
+
+	language := text[language_start : language_end]
+	
+	strings.write_string(builder, "<pre><code>")
+
+	loop: for {
+		start_pos := pos^
+		end_pos, token_kind := parse_rust_token(text, pos^)
+		pos^ = end_pos
+		token_str := text[start_pos : end_pos]
+		
+		switch token_kind {
+		case .End:
 			break loop
 		
-		case '\n':
-            break loop
+		case .Unknown, .Whitespace, .Open_Parenthesis:
+			strings.write_string(builder, token_str)
 		
-		case '[':
-			parsed := maybe_parse_link(builder, text, pos)
-			
-			if !parsed {
-				strings.write_byte(builder, c)
+		case .Comment:
+			strings.write_string(builder, "<span style=\"color: rgb(106, 153, 85);\">")
+			strings.write_string(builder, token_str)
+			strings.write_string(builder, "</span>")
+
+		case .Keyword:
+			strings.write_string(builder, "<span style=\"color: rgb(197, 134, 192);\">")
+			strings.write_string(builder, token_str)
+			strings.write_string(builder, "</span>")
+		
+		case .Type:
+			strings.write_string(builder, "<span style=\"color: rgb(78, 201, 176);\">")
+			strings.write_string(builder, token_str)
+			strings.write_string(builder, "</span>")
+
+		case .Identifier:
+			_, next_token := parse_rust_token(text, pos^)
+			if next_token == .Open_Parenthesis {
+				// Function call
+				strings.write_string(builder, "<span style=\"color: rgb(220, 220, 170);\">")
+				strings.write_string(builder, token_str)
+				strings.write_string(builder, "</span>")
+			} else {
+				strings.write_string(builder, token_str)
 			}
 		
-		case '`':
-			handle_code_char(builder, text, pos)
-        
-        case '$':
-			handle_math_char(builder, text, pos)
+		case .Number:
+			strings.write_string(builder, "<span style=\"color: rgb(181, 206, 168);\">")
+			strings.write_string(builder, token_str)
+			strings.write_string(builder, "</span>")
+		
+		case .Left_Angle_Bracket:
+			strings.write_string(builder, "&lt;")
+		
+		case .Right_Angle_Bracket:
+			strings.write_string(builder, "&gt;")
+		}
+	}
 
-        case:
-            strings.write_byte(builder, c)
-        }
-    }
-
-    strings.write_string(builder, "</p>")
-    strings.write_rune(builder, '\n')
+	strings.write_string(builder, "</code></pre>\n")
 }
 
+build_inline_code :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+	strings.write_string(builder, "<code class=\"inline_code\">")
+
+	loop: for {
+		c, c_size := get_char(text, pos^)
+		pos^ += c_size
+		
+		switch c {
+		case 0:   panic("Didn't close out the inline code")
+		case '`': break loop
+		case '<': strings.write_string(builder, "&lt;")
+		case '>': strings.write_string(builder, "&gt;")
+		case:     strings.write_byte(builder, c)
+		}
+	}
+
+	strings.write_string(builder, "</code>")
+}
+
+build_inline_or_block_math :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+	c, _ := get_char(text, pos^)
+	if c != '$' {
+		build_inline_math(builder, text, pos)
+		return
+	}
+
+	pos^ += 1
+	expr := parse_math_expr(text, pos, false)
+	
+	strings.write_string(builder, "<math display=\"block\">\n")
+	build_expr(builder, expr)
+	strings.write_string(builder, "</math>")
+}
+
+build_inline_math :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+	expr := parse_math_expr(text, pos, true)
+	
+	strings.write_string(builder, "<math>\n")
+	build_expr(builder, expr)
+	strings.write_string(builder, "</math>")
+}
+
+// #todo: Move to math files
+// #todo: Rename to build_math_expr
 build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
     switch expr_var in expr.variant {
 	case ^Expr_List:

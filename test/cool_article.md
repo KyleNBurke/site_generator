@@ -3,6 +3,11 @@ title = Cool Article
 
 Hello, this is a test.
 
+Unordered list test.
+- Item A
+- Item B
+- Item C
+
 ```rust
 // Initialize freetype
 let library = freetype::Library::init().unwrap();
