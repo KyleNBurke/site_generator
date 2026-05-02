@@ -502,9 +502,16 @@ handle_code_char :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 			
 			case '`':
 				break loop_2
-			}
 			
-			strings.write_byte(builder, c)
+			case '<':
+				strings.write_string(builder, "&lt;")
+			
+			case '>':
+				strings.write_string(builder, "&gt;")
+			
+			case:
+				strings.write_byte(builder, c)
+			}
 		}
 
 		strings.write_string(builder, "</code>")

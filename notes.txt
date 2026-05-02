@@ -1,7 +1,7 @@
 Todo
+- Need the math table to line up at the ampersand
 - Minus sign is too short in math
 - Color inline code blocks
-- Handle < correctly in inline code blocks
 - Footnotes would be nice
 - Ordered list items
 - Only color code blocks if it's Rust

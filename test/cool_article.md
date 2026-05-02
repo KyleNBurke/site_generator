@@ -105,5 +105,7 @@ for char_code in 33..127 {
 let atlas = generate_atlas(&fields);
 ```
 
+Here is some inline code: `thing: Vec<Option<u8>>`, testing the angle brackets.
+
 Code block done.
 
