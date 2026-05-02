@@ -8,6 +8,11 @@ Unordered list test.
 - Item B
 - Item C
 
+Ordered list test.
+1. Item 1
+1. Item 2
+1. Item 3
+
 ```rust
 // Initialize freetype
 let library = freetype::Library::init().unwrap();

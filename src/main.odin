@@ -230,12 +230,14 @@ build_article :: proc(file_path: string, article: ^Article) {
 			continue
 		
 		case '-':
-			build_unordered_list(&builder, text, &pos)
-			continue
+			if maybe_build_unordered_list(&builder, text, &pos) {
+				continue
+			}
 
-		// case '1':
-		// 	build_ordered_list(&builder, text, &pos)
-		// 	continue
+		case '1':
+			if maybe_build_ordered_list(&builder, text, &pos) {
+				continue
+			}
 		
 		case '!':
 			if maybe_build_image(&builder, text, &pos) {
@@ -320,8 +322,11 @@ build_heading :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
 	strings.write_string(builder, close_tag)
 }
 
-build_unordered_list :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
-	// #todo: Unordered list items actually need a following space: "- "
+maybe_build_unordered_list :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
+	c, _ := get_char(text, pos^)
+	if c != ' ' do return false
+	pos^ += 1
+	
 	strings.write_string(builder, "<ul>")
 
 	for {
@@ -344,10 +349,43 @@ build_unordered_list :: proc(builder: ^strings.Builder, text: string, pos: ^int)
 	}
 
 	strings.write_string(builder, "</ul>")
+	return true
 }
 
-build_ordered_list :: proc(builder: ^strings.Builder, text: string, pos: ^int) {
+maybe_build_ordered_list :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
+	c, _ := get_char(text, pos^)
+	if c != '.' do return false
+	pos^ += 1
 
+	c, _ = get_char(text, pos^)
+	if c != ' ' do return false
+	pos^ += 1
+
+	strings.write_string(builder, "<ol>")
+
+	for {
+		strings.write_string(builder, "<li>")
+
+		for {
+			c, c_size := get_char(text, pos^)
+			pos^ += c_size
+			if c == 0 || c == '\n' do break
+			
+			// #todo: The problem with this is we can't trim any trailing/leading whitespace: <li> hello </li>
+			handle_paragraph_char(builder, text, pos, c)
+		}
+
+		strings.write_string(builder, "</li>")
+
+		if pos^ + 3 > len(text) || text[pos^ : pos^ + 3] != "1. " {
+			break
+		}
+
+		pos^ += 3
+	}
+
+	strings.write_string(builder, "</ol>")
+	return true
 }
 
 maybe_build_image :: proc(builder: ^strings.Builder, text: string, pos: ^int) -> bool {
