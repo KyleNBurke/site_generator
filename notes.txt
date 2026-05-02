@@ -1,13 +1,9 @@
 Todo
 - Need the math table to line up at the ampersand
 - Minus sign is too short in math
-- Color inline code blocks
 - Footnotes would be nice
-- Ordered list items
 - Only color code blocks if it's Rust
 - Code runs off the edge horizontally
 - Layout on small screen sizes
 - Color Vec as a type?
 - Home page - show a short description of the article
-- The equation y_c - y_s = 0 is not aligned correctly
-- Unordered list should start with dash plus space? i.e. "- "
