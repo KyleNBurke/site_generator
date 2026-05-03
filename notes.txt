@@ -10,3 +10,4 @@ Todo
 - Left align block equations by default?
 - Ability to diff the current site with the latest backup would be nice
 - Put backups in directory, tired of deleting them
+- When a picture isn't working, show that somehow

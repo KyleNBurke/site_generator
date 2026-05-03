@@ -5,7 +5,7 @@ html {
 body {
 	width: 90%;
 	max-width: 70rem;
-	margin: 0 auto;
+	margin: 0 auto 20rem auto;
 	font-family: Georgia;
 	font-size: 1.2rem;
 	background-color: #1e1e1e;
@@ -54,4 +54,8 @@ pre {
 	background-color: #3a3a3a;
 	padding-left: 0.2rem;
 	padding-right: 0.2rem;
+}
+
+img {
+  max-width: 100%;
 }
