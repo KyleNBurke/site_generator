@@ -1,8 +1,12 @@
 Todo
 - Need the math table to line up at the ampersand
-- Footnotes would be nice
-- Only color code blocks if it's Rust
 - Layout on small screen sizes
-- Home page - show a short description of the article
+- Only color code blocks if it's Rust
+
+- Projects section
+- Add static site generator as a project
+- Write article about smooth rendering without pegging the CPU
+- Footnotes would be nice
 - Left align block equations by default?
 - Ability to diff the current site with the latest backup would be nice
+- Put backups in directory, tired of deleting them

@@ -1,4 +1,5 @@
 title = Cool Article
+date = 5/1/2026
 #---
 
 Hello, this is a test.

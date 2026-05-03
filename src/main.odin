@@ -3,13 +3,33 @@ package main
 import "core:os"
 import "core:fmt"
 import "core:strings"
+import "core:strconv"
 import "core:time"
+import "core:time/datetime"
+import "core:slice"
 
 METADATA_SEPARATOR :: "#---"
+
+HTML ::
+`<!DOCTYPE html>
+<html>
+<head>
+	<title>#title#</title>
+    <link rel="stylesheet" href="#style_path#">
+</head>
+<body>
+    <header>
+        <h1 class="name_heading">Kyle Burke</h1>
+		#home_button#
+    </header>
+#content#
+</body>
+</html>`
 
 Article :: struct {
     rel_html_file_path: string,
     title: string,
+	date: datetime.Date,
 	html: string,
 }
 
@@ -138,9 +158,11 @@ main :: proc() {
 			}
 		}
 
+		tab_title := fmt.tprintf("%s - Kyle Burke", article.title)
 		home_button := fmt.tprintf("<a href=\"%s\">Home</a>", home_page_file_path)
 
-		page_html, _ := strings.replace(HTML, "#style_path#", style_file_path, 1)
+		page_html, _ := strings.replace(HTML, "#title#", tab_title, 1)
+		page_html, _ = strings.replace(page_html, "#style_path#", style_file_path, 1)
 		page_html, _ = strings.replace(page_html, "#home_button#", home_button, 1)
 		page_html, _ = strings.replace(page_html, "#content#", article.html, 1)
 
@@ -151,20 +173,36 @@ main :: proc() {
     }
 
     // Home page
+	sorted_articles := make([]^Article, len(articles))
+	for &article, i in articles {
+		sorted_articles[i] = &article
+	}
+
+	less :: proc(i, j: ^Article) -> bool {
+		delta, error := datetime.sub(i.date, j.date)
+		assert(error == nil)
+		return delta.nanos > 0 || delta.seconds > 0 || delta.days > 0
+	}
+
+	slice.sort_by(sorted_articles, less)
+
     articles_builder := strings.builder_make()
+	strings.write_string(&articles_builder, "<h3>Articles</h3>")
+    strings.write_string(&articles_builder, "<ul class=\"articles\">")
 
-    strings.write_string(&articles_builder, "<ul>")
-
-    for article in articles {
-        line := fmt.aprintfln("<li><a href=\"%s\">%s</a></li>", article.rel_html_file_path, article.title)
-        strings.write_string(&articles_builder, line)
+    for article in sorted_articles {
+		strings.write_string(&articles_builder, "<li>")
+		link := fmt.tprintfln("<a href=\"%s\">%s</a>", article.rel_html_file_path, article.title)
+		strings.write_string(&articles_builder, link)
+		strings.write_string(&articles_builder, "</li>")
     }
 
     strings.write_string(&articles_builder, "</ul>")
 
     article_links := strings.to_string(articles_builder)
-    home_page_text, _ := strings.replace(HTML, "#style_path#", "style.css", 1)
-    home_page_text, _ = strings.replace(home_page_text, "#home_button#", "", 1)
+	home_page_text, _ := strings.replace(HTML, "#title#", "Kyle Burke", 1)
+    home_page_text, _ = strings.replace(home_page_text, "#style_path#", "style.css", 1)
+    home_page_text, _ = strings.replace(home_page_text, "#home_button#", "<a style=\"visibility: hidden;\">Home</a>", 1)
     home_page_text, _ = strings.replace(home_page_text, "#content#", article_links, 1)
 
     error = os.write_entire_file("site/index.html", home_page_text)
@@ -200,10 +238,32 @@ build_article :: proc(file_path: string, article: ^Article) {
 		case "title":
 			article.title = value
 		
+		case "date":
+			components, error := strings.split(value, "/")
+			assert(error == nil)
+			assert(len(components) == 3)
+
+			month, month_ok := strconv.parse_int(components[0])
+			assert(month_ok)
+			
+			day, day_ok := strconv.parse_int(components[1])
+			assert(day_ok)
+
+			year, year_ok := strconv.parse_int(components[2])
+			assert(year_ok)
+
+			date, date_error := datetime.components_to_date(year, month, day)
+			assert(date_error == nil)
+
+			article.date = date
+		
 		case:
-			fmt.panicf("Invalid key %v", key)
+			fmt.panicf("Invalid metadata key \"%v\"", key)
 		}
 	}
+
+	fmt.assertf(article.title != "", "Missing title")
+	fmt.assertf(article.date != {}, "Missing date")
 
 	// Content
 	builder := strings.builder_make()
@@ -757,18 +817,3 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 	// 	panic("")
     }
 }
-
-HTML ::
-`<!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="#style_path#">
-</head>
-<body>
-    <header>
-        <h1 class="name_heading">Kyle Burke</h1>
-		#home_button#
-    </header>
-#content#
-</body>
-</html>`
