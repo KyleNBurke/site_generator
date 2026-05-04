@@ -26,6 +26,15 @@ HTML ::
 </body>
 </html>`
 
+PROJECTS_HTML ::
+`<h3 class="home_heading">Projects</h3>
+<ul class="home_list">
+<li><a>Text Editor</a></li>
+<li><a href="https://github.com/KyleNBurke/site_generator">Static Site Generator</a></li>
+<li><a href="https://github.com/KyleNBurke/kart_racer">Arcade Physics Racing Game</a></li>
+</ul>
+`
+
 Article :: struct {
     rel_html_file_path: string,
     title: string,
@@ -187,8 +196,9 @@ main :: proc() {
 	slice.sort_by(sorted_articles, less)
 
     articles_builder := strings.builder_make()
-	strings.write_string(&articles_builder, "<h3>Articles</h3>")
-    strings.write_string(&articles_builder, "<ul class=\"articles\">")
+	strings.write_string(&articles_builder, PROJECTS_HTML)
+	strings.write_string(&articles_builder, "<h3 class=\"home_heading\">Articles</h3>")
+    strings.write_string(&articles_builder, "<ul class=\"home_list\">")
 
     for article in sorted_articles {
 		strings.write_string(&articles_builder, "<li>")

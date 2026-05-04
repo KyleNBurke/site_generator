@@ -1,6 +1,7 @@
 Todo
 - Need the math table to line up at the ampersand
 - Layout on small screen sizes
+- Make readme
 
 - Should I just embed the YouTube video?
 - Projects section
