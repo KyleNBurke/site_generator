@@ -575,63 +575,78 @@ build_inline_or_block_code :: proc(builder: ^strings.Builder, text: string, pos:
 	}
 
 	language := text[language_start : language_end]
-	
+
 	strings.write_string(builder, "<pre><code>")
 
-	loop: for {
-		start_pos := pos^
-		end_pos, token_kind := parse_rust_token(text, pos^)
-		pos^ = end_pos
-		token_str := text[start_pos : end_pos]
-		
-		switch token_kind {
-		case .End:
-			break loop
-		
-		case .Unknown, .Whitespace, .Open_Parenthesis:
-			strings.write_string(builder, token_str)
-		
-		case .Comment:
-			strings.write_string(builder, "<span style=\"color: rgb(106, 153, 85);\">")
-			strings.write_string(builder, token_str)
-			strings.write_string(builder, "</span>")
-
-		case .Keyword:
-			strings.write_string(builder, "<span style=\"color: rgb(197, 134, 192);\">")
-			strings.write_string(builder, token_str)
-			strings.write_string(builder, "</span>")
-		
-		case .Type:
-			strings.write_string(builder, "<span style=\"color: rgb(78, 201, 176);\">")
-			strings.write_string(builder, token_str)
-			strings.write_string(builder, "</span>")
-
-		case .Identifier:
-			_, next_token := parse_rust_token(text, pos^)
-			if next_token == .Open_Parenthesis {
-				// Function call
-				strings.write_string(builder, "<span style=\"color: rgb(220, 220, 170);\">")
+	if language == "rust" {
+		loop: for {
+			start_pos := pos^
+			end_pos, token_kind := parse_rust_token(text, pos^)
+			pos^ = end_pos
+			token_str := text[start_pos : end_pos]
+			
+			switch token_kind {
+			case .End:
+				break loop
+			
+			case .Unknown, .Whitespace, .Open_Parenthesis:
+				strings.write_string(builder, token_str)
+			
+			case .Comment:
+				strings.write_string(builder, "<span style=\"color: rgb(106, 153, 85);\">")
 				strings.write_string(builder, token_str)
 				strings.write_string(builder, "</span>")
-			} else {
+
+			case .Keyword:
+				strings.write_string(builder, "<span style=\"color: rgb(197, 134, 192);\">")
 				strings.write_string(builder, token_str)
+				strings.write_string(builder, "</span>")
+			
+			case .Type:
+				strings.write_string(builder, "<span style=\"color: rgb(78, 201, 176);\">")
+				strings.write_string(builder, token_str)
+				strings.write_string(builder, "</span>")
+
+			case .Identifier:
+				_, next_token := parse_rust_token(text, pos^)
+				if next_token == .Open_Parenthesis {
+					// Function call
+					strings.write_string(builder, "<span style=\"color: rgb(220, 220, 170);\">")
+					strings.write_string(builder, token_str)
+					strings.write_string(builder, "</span>")
+				} else {
+					strings.write_string(builder, token_str)
+				}
+			
+			case .Number:
+				strings.write_string(builder, "<span style=\"color: rgb(181, 206, 168);\">")
+				strings.write_string(builder, token_str)
+				strings.write_string(builder, "</span>")
+			
+			case .Const_Value:
+				strings.write_string(builder, "<span style=\"color: rgb(79,  193, 255);\">")
+				strings.write_string(builder, token_str)
+				strings.write_string(builder, "</span>")
+			
+			case .Left_Angle_Bracket:
+				strings.write_string(builder, "&lt;")
+			
+			case .Right_Angle_Bracket:
+				strings.write_string(builder, "&gt;")
 			}
-		
-		case .Number:
-			strings.write_string(builder, "<span style=\"color: rgb(181, 206, 168);\">")
-			strings.write_string(builder, token_str)
-			strings.write_string(builder, "</span>")
-		
-		case .Const_Value:
-			strings.write_string(builder, "<span style=\"color: rgb(79,  193, 255);\">")
-			strings.write_string(builder, token_str)
-			strings.write_string(builder, "</span>")
-		
-		case .Left_Angle_Bracket:
-			strings.write_string(builder, "&lt;")
-		
-		case .Right_Angle_Bracket:
-			strings.write_string(builder, "&gt;")
+		}
+	} else {
+		for {
+			c, c_size := get_char(text, pos^)
+			pos^ += c_size
+			fmt.assertf(c != 0, "Didn't close out the code block")
+
+			if c == '`' && pos^ + 2 < len(text) && text[pos^ : pos^ + 2] == "``" {
+				pos^ += 2
+				break
+			}
+
+			strings.write_byte(builder, c)
 		}
 	}
 
@@ -812,8 +827,5 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		}
 
 		strings.write_string(builder, "</mtable>\n")
-	
-	// case ^Aligned_Exprs:
-	// 	panic("")
     }
 }

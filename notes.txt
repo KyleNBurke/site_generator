@@ -1,8 +1,8 @@
 Todo
 - Need the math table to line up at the ampersand
 - Layout on small screen sizes
-- Only color code blocks if it's Rust
 
+- Should I just embed the YouTube video?
 - Projects section
 - Add static site generator as a project
 - Write article about smooth rendering without pegging the CPU
