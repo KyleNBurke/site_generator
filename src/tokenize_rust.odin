@@ -1,10 +1,13 @@
+#+private file
 package main
 
+@(private)
 Rust_Token :: struct {
 	start, end: int,
 	kind: Rust_Token_Kind,
 }
 
+@(private)
 Rust_Token_Kind :: enum {
 	End,
 	Unknown,
@@ -20,6 +23,7 @@ Rust_Token_Kind :: enum {
 	Right_Angle_Bracket,
 }
 
+@(private)
 parse_rust_token :: proc(text: string, pos: int) -> (int, Rust_Token_Kind) {
 	pos := pos
 	c, c_size := get_char(text, pos)
@@ -33,16 +37,16 @@ parse_rust_token :: proc(text: string, pos: int) -> (int, Rust_Token_Kind) {
 		token_kind = .Whitespace
 		
 	case '`':
-		token_kind = parse_rust_backtick(text, &pos)
+		token_kind = parse_backtick(text, &pos)
 	
 	case '/':
-		token_kind = parse_rust_forward_slash(text, &pos)
+		token_kind = parse_forward_slash(text, &pos)
 	
 	case 'a' ..= 'z', 'A' ..= 'Z', '_':
-		token_kind = parse_rust_letter(text, &pos)
+		token_kind = parse_letter(text, &pos)
 	
 	case '0' ..= '9':
-		parse_rust_number(text, &pos)
+		parse_number(text, &pos)
 		token_kind = .Number
 	
 	case '(':
@@ -79,7 +83,7 @@ parse_whitespace :: proc(text: string, pos: ^int) {
 	}
 }
 
-parse_rust_backtick :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
+parse_backtick :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
 	pos^ += 1
 	
 	c1, _ := get_char(text, pos^)
@@ -92,7 +96,7 @@ parse_rust_backtick :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
 	return .Unknown
 }
 
-parse_rust_forward_slash :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
+parse_forward_slash :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
 	pos^ += 1
 	c, _ := get_char(text, pos^)
 
@@ -113,7 +117,7 @@ parse_rust_forward_slash :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
 	return .Unknown
 }
 
-parse_rust_letter :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
+parse_letter :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
 	start := pos^
 	pos^ += 1
 	
@@ -131,7 +135,7 @@ parse_rust_letter :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
 
 	word := text[start : pos^]
 	switch word {
-	case "fn", "let", "for", "if", "else", "mut", "in", "as":
+	case "fn", "let", "for", "if", "else", "match", "mut", "in", "as":
 		return .Keyword
 	
 	case "f64", "usize", "u8", "u16", "u32", "i8", "i16", "i32", "str", "Vec", "Option", "Some":
@@ -144,7 +148,7 @@ parse_rust_letter :: proc(text: string, pos: ^int) -> Rust_Token_Kind {
 	return .Identifier
 }
 
-parse_rust_number :: proc(text: string, pos: ^int) {
+parse_number :: proc(text: string, pos: ^int) {
 	pos^ += 1
 
 	for {

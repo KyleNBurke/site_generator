@@ -1,13 +1,16 @@
+#+private file
 package main
 
 import "core:fmt"
 
-Token :: struct {
+@(private)
+Math_Token :: struct {
 	start, end: int,
-	kind: Token_Kind,
+	kind: Math_Token_Kind,
 }
 
-Token_Kind :: enum {
+@(private)
+Math_Token_Kind :: enum {
 	File_End,
 	Dollar,
 	Double_Dollar,
@@ -29,7 +32,8 @@ Token_Kind :: enum {
 	Double_Backslash,
 }
 
-parse_token :: proc(text: string, pos: int) -> Token {
+@(private)
+parse_math_token :: proc(text: string, pos: int) -> Math_Token {
 	pos := pos
 	
 	// Skip preceding whitespace
@@ -37,7 +41,7 @@ parse_token :: proc(text: string, pos: int) -> Token {
 		c, c_size := get_char(text, pos)
 		
 		if c == 0 {
-			return Token { pos, 0, .File_End }
+			return Math_Token { pos, 0, .File_End }
 		}
 
 		if c != ' ' && c != '\t' && c != '\n' do break
@@ -46,7 +50,7 @@ parse_token :: proc(text: string, pos: int) -> Token {
 
 	c := text[pos]
 
-	token := Token {
+	token := Math_Token {
 		start = pos,
 	}
 
@@ -124,7 +128,7 @@ parse_token :: proc(text: string, pos: int) -> Token {
 	return token
 }
 
-parse_letter :: proc(content: string, index: ^int) -> Token_Kind {
+parse_letter :: proc(content: string, index: ^int) -> Math_Token_Kind {
 	start := index^
 	
 	for {
@@ -149,7 +153,7 @@ parse_number :: proc(text: string, pos: ^int) {
 	}
 }
 
-parse_backslash :: proc(text: string, pos: ^int) -> Token_Kind {
+parse_backslash :: proc(text: string, pos: ^int) -> Math_Token_Kind {
 	if text[pos^] == '\\' {
 		pos^ += 1
 		return .Double_Backslash

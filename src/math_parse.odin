@@ -1,9 +1,106 @@
 package main
 
+Expr :: struct {
+    variant: union {
+		^Expr_List,
+        ^Ident_Expr,
+		^String_Expr,
+		^Number_Expr,
+        ^Superscript_Expr,
+        ^Subscript_Expr,
+		^Sub_Sup_Expr,
+		^Operator_Expr,
+		^Operator_Frac_Expr,
+		^Root_Expr,
+		^Curly_Braced_Expr,
+		^Table_Expr,
+		^Aligned_Table_Expr,
+    }
+}
+
+Ident_Expr :: struct {
+    using expr: Expr,
+    str: string,
+}
+
+String_Expr :: struct {
+    using expr: Expr,
+    str: string,
+}
+
+Number_Expr :: struct {
+    using expr: Expr,
+    str: string,
+}
+
+Superscript_Expr :: struct {
+    using expr: Expr,
+    base_expr: ^Expr,
+    super_expr: ^Expr,
+}
+
+Subscript_Expr :: struct {
+    using expr: Expr,
+    base_expr: ^Expr,
+    sub_expr: ^Expr,
+}
+
+Sub_Sup_Expr :: struct {
+	using expr: Expr,
+	base_expr: ^Expr,
+    sub_expr: ^Expr,
+	super_expr: ^Expr,
+}
+
+Operator_Expr :: struct {
+	using expr: Expr,
+	op: string,
+	right_space: bool,
+}
+
+Operator_Frac_Expr :: struct {
+	using expr: Expr,
+	top_expr: ^Curly_Braced_Expr,
+	bottom_expr: ^Curly_Braced_Expr,
+}
+
+Root_Expr :: struct {
+	using expr: Expr,
+	degree: string,
+	sqrt_expr: ^Curly_Braced_Expr,
+}
+
+// Expressions NOT inside curly braces
+Expr_List :: struct {
+	using expr: Expr,
+	exprs: [dynamic]^Expr,
+}
+
+Curly_Braced_Expr :: struct {
+	using expr: Expr,
+	expr_list: ^Expr_List
+}
+
+Table_Expr :: struct {
+	using expr: Expr,
+	rows: []^Expr,
+}
+
+Aligned_Table_Expr :: struct {
+	using expr: Expr,
+	rows: [dynamic][2]^Expr,
+}
+
+make_expr :: proc($T: typeid) -> ^T {
+	expr := new(T)
+	expr.variant = expr
+	return expr
+}
+
 parse_math_expr :: proc(text: string, pos: ^int, single_dollar: bool) -> ^Expr {
 	expr := parse_expr_list(text, pos)
 	
-	token := parse_token(text, pos^)
+	token := parse_math_token(text, pos^)
 	if single_dollar {
 		assert(token.kind == .Dollar)
 	} else {
@@ -31,7 +128,7 @@ parse_expr_list :: proc(text: string, pos: ^int) -> ^Expr_List {
 parse_expr_2 :: proc(text: string, pos: ^int) -> ^Expr {
 	expr := parse_terminal_expr(text, pos)
 
-	token := parse_token(text, pos^)
+	token := parse_math_token(text, pos^)
 		
 	#partial switch token.kind {
 	case .Carrot:
@@ -48,7 +145,7 @@ parse_expr_2 :: proc(text: string, pos: ^int) -> ^Expr {
 
 		sub_expr := parse_terminal_expr(text, pos)
 
-		token = parse_token(text, pos^)
+		token = parse_math_token(text, pos^)
 		if token.kind == .Carrot {
 			pos^ = token.end
 
@@ -74,7 +171,7 @@ parse_expr_2 :: proc(text: string, pos: ^int) -> ^Expr {
 
 parse_terminal_expr :: proc(text: string, pos: ^int) -> ^Expr {
 	expr: ^Expr
-    token := parse_token(text, pos^)
+    token := parse_math_token(text, pos^)
 
 	#partial switch token.kind {
 	case .Identifier:
@@ -131,7 +228,7 @@ parse_curly_braced_expr :: proc(text: string, pos: ^int) -> ^Curly_Braced_Expr {
 	expr := make_expr(Curly_Braced_Expr)
 	expr.expr_list = parse_expr_list(text, pos)
 
-	token := parse_token(text, pos^)
+	token := parse_math_token(text, pos^)
 	assert(token.kind == .Close_Curly_Brace)
 	pos^ = token.end
 
@@ -141,12 +238,12 @@ parse_curly_braced_expr :: proc(text: string, pos: ^int) -> ^Curly_Braced_Expr {
 parse_frac_expr :: proc(text: string, pos: ^int) -> ^Operator_Frac_Expr {
 	expr := make_expr(Operator_Frac_Expr)
 	
-	token := parse_token(text, pos^)
+	token := parse_math_token(text, pos^)
 	assert(token.kind == .Open_Curly_Brace)
 	pos^ = token.end
 	expr.top_expr = parse_curly_braced_expr(text, pos)
 
-	token = parse_token(text, pos^)
+	token = parse_math_token(text, pos^)
 	assert(token.kind == .Open_Curly_Brace)
 	pos^ = token.end
 	expr.bottom_expr = parse_curly_braced_expr(text, pos)
@@ -157,22 +254,22 @@ parse_frac_expr :: proc(text: string, pos: ^int) -> ^Operator_Frac_Expr {
 parse_root_expr :: proc(text: string, pos: ^int) -> ^Root_Expr {
 	expr := make_expr(Root_Expr)
 	
-	token := parse_token(text, pos^)
+	token := parse_math_token(text, pos^)
 	if token.kind == .Open_Bracket {
 		pos^ = token.end
 
-		token = parse_token(text, pos^)
+		token = parse_math_token(text, pos^)
 		assert(token.kind == .Number)
 		pos^ = token.end
 
 		expr.degree = text[token.start : token.end]
 
-		token = parse_token(text, pos^)
+		token = parse_math_token(text, pos^)
 		assert(token.kind == .Close_Bracket)
 		pos^ = token.end
 	}
 
-	token = parse_token(text, pos^)
+	token = parse_math_token(text, pos^)
 	assert(token.kind == .Open_Curly_Brace)
 	pos^ = token.end
 
@@ -190,12 +287,12 @@ parse_aligned_table_expr :: proc(text: string, pos: ^int) -> ^Aligned_Table_Expr
 		last_row := &expr.rows[len(expr.rows) - 1]
 		
 		last_row[0] = parse_expr_list(text, pos)
-		token := parse_token(text, pos^)
+		token := parse_math_token(text, pos^)
 		assert(token.kind == .Ampersand)
 		pos^ = token.end
 
 		last_row[1] = parse_expr_list(text, pos)
-		token = parse_token(text, pos^)
+		token = parse_math_token(text, pos^)
 		pos^ = token.end
 		if token.kind == .End_Aligned {
 			break
