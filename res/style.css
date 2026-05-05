@@ -49,6 +49,7 @@ a:hover {
 }
 
 pre {
+	overflow-x: auto;
 	font-size: 1.05rem;
 	background-color: #2e2e2e;
 	padding: 0.5rem;
@@ -64,4 +65,10 @@ pre {
 
 img {
   max-width: 100%;
+}
+
+.math_block {
+	width: 100%;
+	overflow-x: auto;
+	overflow-y: hidden;
 }

@@ -14,6 +14,7 @@ HTML ::
 `<!DOCTYPE html>
 <html>
 <head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>#title#</title>
     <link rel="stylesheet" href="#style_path#">
 </head>
@@ -692,7 +693,7 @@ build_inline_or_block_math :: proc(builder: ^strings.Builder, text: string, pos:
 	pos^ += 1
 	expr := parse_math_expr(text, pos, false)
 	
-	strings.write_string(builder, "<math display=\"block\">\n")
+	strings.write_string(builder, "<math class=\"math_block\">\n")
 	build_expr(builder, expr)
 	strings.write_string(builder, "</math>")
 }
