@@ -1,12 +1,10 @@
 Todo
-- Need the math table to line up at the ampersand
 - Make readme
-- y = 4 equation needs space below
 
-- Should I just embed the YouTube video?
+- Too much space under B(t) = 
+- Is there a better character for "prime"?
 - Write article about smooth rendering without pegging the CPU
 - Footnotes would be nice
-- Left align block equations by default?
 - Ability to diff the current site with the latest backup would be nice
 - Put backups in directory, tired of deleting them
 - When a picture isn't working, show that somehow

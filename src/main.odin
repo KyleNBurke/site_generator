@@ -826,11 +826,11 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		for row_expr in expr_var.rows {
 			strings.write_string(builder, "<mtr>")
 
-			strings.write_string(builder, "<mtd>")
+			strings.write_string(builder, "<mtd class=\"math_td_left\">")
 			build_expr(builder, row_expr[0])
 			strings.write_string(builder, "</mtd>")
 
-			strings.write_string(builder, "<mtd>")
+			strings.write_string(builder, "<mtd class=\"math_td_right\">")
 			build_expr(builder, row_expr[1])
 			strings.write_string(builder, "</mtd>")
 			
