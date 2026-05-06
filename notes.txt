@@ -1,10 +1,8 @@
 Todo
 - Make readme
 
-- Too much space under B(t) = 
-- Is there a better character for "prime"?
 - Write article about smooth rendering without pegging the CPU
 - Footnotes would be nice
 - Ability to diff the current site with the latest backup would be nice
-- Put backups in directory, tired of deleting them
+- Could put backups in a directory
 - When a picture isn't working, show that somehow

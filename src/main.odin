@@ -762,13 +762,14 @@ build_expr :: proc(builder: ^strings.Builder, expr: ^Expr) {
 		case "+", "=", ">", "<", "[", "]":
 			op = expr_var.op
 		
-		case "-":    op = "&minus;"
-		case "\\in": op = "&isin;"
-		case "\\ne": op = "&ne;"
-		case "\\pm": op = "&plusmn;"
-		case "\\left[": op = "["
+		case "-":        op = "&minus;"
+		case "'":        op = "&prime;"
+		case "\\in":     op = "&isin;"
+		case "\\ne":     op = "&ne;"
+		case "\\pm":     op = "&plusmn;"
+		case "\\left[":  op = "["
 		case "\\right]": op = "]"
-		case "\\left(": op = "("
+		case "\\left(":  op = "("
 		case "\\right)": op = ")"
 		
 		case:

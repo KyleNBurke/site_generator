@@ -65,8 +65,7 @@ parse_math_token :: proc(text: string, pos: int) -> Math_Token {
 			token.kind = .Dollar
 		}
 	
-	// #todo: Need to figure out the brackets
-	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')', '|', '\'': // #todo: single qoute doesn't look as good
+	case 'a' ..= 'z', 'A' ..= 'Z', '(', ')', '|':
 		pos += 1
 		token.kind = .Identifier
 	
@@ -83,7 +82,7 @@ parse_math_token :: proc(text: string, pos: int) -> Math_Token {
 		pos += 1
 		token.kind = .Underscore
 	
-	case '+', '-', '=', '<', '>':
+	case '+', '-', '=', '<', '>', '\'':
 		pos += 1
 		token.kind = .Operator
 	
