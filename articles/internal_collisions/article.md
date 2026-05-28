@@ -67,7 +67,7 @@ Below are all the possible scenarios.
 To recap, when checking for a collision between a hull and a line segment. We generate a collision hull and feed that, instead of the line, to our collision detection algorithm. The collision hull is formed using the rules below.
 
 1. If the line segment forms a convex angle with an adjacent line segment, the adjacent line segment's isolated vertex is included.
-2. If the line segment forms a concave angle with an adjacent line segment, the line is extended.
+1. If the line segment forms a concave angle with an adjacent line segment, the line is extended.
 
 This will guarantee our collision detection algorithm will never spit out an internal collision normal. One thing to note, the generated hull will have a minimum of 2 vertices (concave-concave case) and a maximum of 4 (convex-convex case).
 
@@ -86,7 +86,7 @@ Here we see two adjacent faces that form concave angles and a single adjacent fa
 When checking for a collision between our cube and the highlighted face, we again generate a convex hull which is fed to the collision detection algorithm instead of the face. The collision hull is formed using the rules below.
 
 1. If the face forms a convex angle with an adjacent face, the adjacent face's isolated vertex is included.
-2. If the face forms a concave angle with an adjacent face, the face is extended.
+1. If the face forms a concave angle with an adjacent face, the face is extended.
 
 Using these rules, the highlighted face becomes the following hull of 5 vertices.
 
